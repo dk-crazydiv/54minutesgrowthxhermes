@@ -4,6 +4,25 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — Decision reversed: Zomato is the build target, food-only
+
+Manager session (Jatin's Fable, session `39c8a1a3`). Jatin made the call after the
+search/discovery probes.
+
+- What flipped it: live search exploration showed Zomato answers "find dish X under
+  ₹300, rated 4.3+, fast" in one filtered call (8 working filter knobs, dishes with
+  orderable variant_ids inline), while Swiggy has no filters, no global dish search
+  (zero results unscoped — restaurant-scoped only), and 40% ads in results. Add
+  lifetime history, UPI QR checkout, and refresh tokens.
+- Scope tightened to food-only, four flows: NL search, repeat order, cart optimise,
+  calendar timing. The Instamart back-in-stock watch is cut, not replaced.
+- Updated: `CLAUDE.md` (product line, scope, domain rules now Zomato's — one
+  restaurant per cart, server final_amount authoritative, UPI/COD only),
+  `docs/idea.md` decision section, `human_backlog.md`, mission control.
+- Swiggy docs stay as reference; known caveat to design around: Zomato README allows
+  personal use/testing only, so the buildathon demo is fine but shipping needs their
+  developer-access approval.
+
 ## July 12 — Hermes MCP wiring made repo-portable; MCP claims re-verified live
 
 Manager session (Jatin's Fable, session `39c8a1a3`). Commit `d48e34a`.

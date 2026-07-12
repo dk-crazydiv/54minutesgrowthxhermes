@@ -46,7 +46,7 @@
 <main>
   <header>
     <h1>Hermes buildathon — mission control (Jatin's Fable)</h1>
-    <div class="stamp">Manager Fable · session <code>39c8a1a3</code> · July 12 · <b>Swiggy chosen as build target; both MCPs verified live</b></div>
+    <div class="stamp">Manager Fable · session <code>39c8a1a3</code> · July 12 · <b>Decision reversed on live search data: Zomato is the build target, food-only, four flows</b></div>
   </header>
 
   <section>
@@ -61,14 +61,14 @@
 
   <section>
     <h2>In flight</h2>
-    <div class="item done"><strong>Decision made: Swiggy is the build target, Zomato research-only.</strong>
-      <p>Written into <code>docs/idea.md</code> from measured limits data (commit <code>f7a3009</code>). Instamart vertical + legal builders program + reorderMeta won it; Zomato's lifetime history is a demo extension at most (its README forbids third-party apps).</p></div>
+    <div class="item done"><strong>Decision (final, Jatin): Zomato is the build target — food-only, four flows.</strong>
+      <p>Live search probes flipped the earlier Swiggy draft: Zomato answers "dish under ₹300, 4.3★+, fast" in one filtered call with orderable IDs; Swiggy has zero filters and no global dish search. Grocery watch is cut with Instamart. Scope now in <code>CLAUDE.md</code> + <code>docs/idea.md</code>; comparison page has the full ledger.</p></div>
     <div class="item done"><strong>Both MCPs verified live from Claude Code, on real accounts.</strong>
       <p>Swiggy Food: exactly 5 orders returned (cap confirmed), full reorderMeta present. Swiggy Instamart: connected but zero orders in the 15-day window — demo needs fresh Instamart orders placed beforehand. Zomato: lifetime pagination works. Live findings in <code>docs/swiggy/mcp-setup.md</code>.</p></div>
     <div class="item done"><strong>Gateway is now a launchd service.</strong>
       <p>Supervised (auto-restart on crash, start at login) — the old "dies with a reboot" gap is closed. One kill-test still owed as formal proof for the backlog item.</p></div>
-    <div class="item flight"><strong>Next build slice: flows 1+2 (NL search + repeat order) live against Swiggy MCP.</strong>
-      <p>Shapes-first: dump real tool responses into <code>docs/swiggy/tools/</code>, then run the demo conversation end-to-end.</p></div>
+    <div class="item flight"><strong>Next build slice: flows 1+2 (NL search + repeat order) live against Zomato MCP.</strong>
+      <p>Tool shapes are already dumped (<code>docs/zomato/tools/</code>); next is wiring the demo conversation end-to-end through Hermes on Telegram.</p></div>
   </section>
 
   <section>

@@ -240,27 +240,39 @@ Order from Swiggy without navigating Swiggy.
 
 
 
-## Decision: Swiggy is the build target; Zomato is research-only
+## Decision: Zomato is the build target; Swiggy is reference-only
 
-Decided 12 Jul 2026 from the measured data in `docs/swiggy/mcp-limits.md` and
-`docs/zomato/mcp-limits.md`.
+Decided 12 Jul 2026 by the team after live probes on real accounts (measured data in
+`docs/zomato/mcp-limits.md` and `docs/swiggy/`). Supersedes the earlier Swiggy-first
+draft from the same day.
 
-**Why Swiggy:**
+**Why Zomato:**
 
-- **Verticals.** Swiggy covers Food + Instamart (+ Dineout) — flows 3 and 5
-  (cart optimisation, back-in-stock watch) need Instamart. Zomato is food-delivery only.
-- **Legality.** Zomato's README forbids third-party apps (personal use/testing only).
-  Swiggy has an explicit builders program with production access.
-- **Cart/coupon surface.** Both work, but Swiggy exposes coupons, go-to items, and
-  per-order `reorderMeta` that map directly onto the five hackathon flows.
+- **Search is a one-call answer.** "Find chicken biryani under ₹300, rated 4.3+"
+  returns dishes with exact prices, orderable variant_ids, restaurant rating/votes,
+  ETA and distance in a single filtered call (8 working filter knobs). Swiggy has no
+  filters at all and its dish search only works scoped to one restaurant — flow 1
+  would be a hand-built fan-out pipeline, with 40% ads in results.
+- **Lifetime order history** (verified back to the account's first order, 2017) —
+  "repeat my usual" is grounded in real evidence of what "usual" means, and enables
+  eating-pattern/budget features. Swiggy shows only the last 5 orders.
+- **Better checkout and auth for a live demo:** UPI QR mid-chat or COD, no order-value
+  cap observed, refresh tokens (no mid-hackathon re-login).
+- **Richer menu data:** variants, addons, veg/spicy tags, populated nutrition
+  (protein/calories/health score), and built-in personalization signals.
 
-**Known Swiggy costs we accept (and design around):**
+**Known Zomato costs we accept (and design around):**
 
-- Food history is the **last 5 orders only** — "repeat order" means recent repeats,
-  not "same as last Diwali". Instamart history is 15 days.
-- **COD only, < ₹1,000 cap** — the demo script orders small and pays cash.
-- No refresh tokens until v1.1 — re-auth every 5 days.
+- **Food delivery only — and that's the product now.** The grocery/Instamart flow
+  (back-in-stock watch) is cut entirely; hackathon scope is the four food flows
+  (search, repeat, cart optimise, calendar timing). Lifetime-history features
+  (eating patterns, budget) are demo-able extensions.
+- **Repeat-order needs re-resolution:** history has no per-item prices and dates omit
+  the year — rebuilding a cart means resolving items against the live menu.
+- **README says personal use/testing only** — fine for a buildathon demo, but nothing
+  we build can ship publicly without Zomato's developer-access approval.
+- Pagination cursors must be double-encoded; search pages are heavy (use page_size 3–5);
+  per-dish ratings are always 0; fees only appear on a live cart.
 
-**What Zomato is still good for:** lifetime order history (2017→now measured) with
-dietary tags — usable for a one-off "your eating patterns" demo extension, never for
-the core flows. No further Zomato integration work is planned.
+**What Swiggy remains for:** reference and comparison. The research in `docs/swiggy/`
+stays current as of 12 Jul 2026; no further Swiggy build work is planned.

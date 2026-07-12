@@ -11,14 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Two layers, one repo:
 
 1. **The platform (now):** a Hermes agent on Kartik's Telegram, powered by his subscriptions — GLM (Z.AI) and MiniMax today, Codex (ChatGPT subscription) next. See `docs/roadmap/OBJECTIVE.md`.
-2. **The product idea (buildathon):** the **Swiggy Companion Agent** — search, repeat, optimise, place, and track Swiggy Food and Instamart orders by chatting. Spec and scope: `docs/idea.md`.
+2. **The product idea (buildathon):** the **Food Companion Agent on Zomato** — search, repeat, optimise, place, and track Zomato food orders by chatting. Spec, scope, and the Zomato-over-Swiggy decision: `docs/idea.md`. Swiggy research in `docs/swiggy/` is reference-only.
 
-**Hackathon scope (build these five flows, nothing more):**
-1. Natural-language search
-2. Repeat a previous order
-3. Prepare and optimise a cart (coupon/MOV/budget awareness)
+**Hackathon scope (food ordering only — build these four flows, nothing more):**
+1. Natural-language search (one filtered Zomato call: price/rating/distance/offers)
+2. Repeat a previous order (lifetime history; re-resolve items against the live menu)
+3. Prepare and optimise a cart (offers/MOV/budget awareness via get_cart_offers)
 4. Calendar-aware order timing
-5. Watch an unavailable Instamart product (polling-based)
+
+Grocery/Instamart is out of scope entirely — Zomato is food delivery only, and that's
+the product. The old flow 5 (back-in-stock watch) died with the platform decision.
 
 Everything else in `docs/idea.md` is a demo-able extension, not a build target.
 
@@ -38,9 +40,9 @@ These come from the limitations in `docs/idea.md` — treat them as hard constra
 
 - **The user always gives final approval before an order is placed.** The agent prepares carts; it never checks out unprompted.
 - **Never blindly retry checkout** — duplicate orders are a real failure mode. On ambiguous checkout errors, check order status before retrying.
-- **Food and Instamart carts are separate** transactions — never mix them in one flow.
-- **Prices and availability can change** between search and checkout — re-verify totals at cart-confirmation time, don't trust stale search results.
-- **Back-in-stock monitoring is polling**, not event-driven — assume no webhook exists.
+- **One restaurant per cart, exactly one variant per item** — Zomato rejects mixed carts; the server's `final_amount` is authoritative, never recompute totals client-side.
+- **Prices and availability can change** between search and checkout — re-verify via a fresh cart at confirmation time, don't trust stale search results. Fees/taxes only exist on a live cart.
+- **Payment is UPI QR or COD only** — the QR comes back at checkout; payment never flows through the agent.
 - Calendar data is used only to time orders — don't surface or store meeting content beyond what's needed.
 
 ## Methodical Problem-Solving
