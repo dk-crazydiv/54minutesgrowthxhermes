@@ -13,6 +13,10 @@ The product is the Swiggy Companion Agent (`docs/idea.md`). Everything here serv
 - **Cart prep + optimise + demo script.** Coupon/MOV math ("₹64 more for the coupon"),
   user approves before checkout. Then write the 4-minute demo script.
 
+- **Context limits are a live concern.** Long Telegram threads + big MCP responses
+  (Zomato tools.json is 5.5k lines) will blow the window. Keep tool output trimmed,
+  and the user needs a fresh-chat command in Telegram to reset the session.
+
 ## Next
 
 - **Submit the live URL.** Landing page is live at https://zomato-companion.pages.dev
