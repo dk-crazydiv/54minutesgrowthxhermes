@@ -29,4 +29,28 @@ if old in s:
     s = s.replace(old, "            session_info = \"\"  # branding patch: hide internals")
     open(p, "w").write(s)
 EOF
+python3 - <<'EOF'
+# 3) deliver MCP-produced media (e.g. Zomato checkout QR) as real attachments:
+# zomato tools aren't on the producer-tool allowlist, so their MEDIA: tags
+# were falling through as literal text on Telegram.
+p = "vendor/hermes-agent/gateway/run.py"
+s = open(p).read()
+old = '''_AUTO_APPEND_MEDIA_TOOL_NAMES = {
+    "text_to_speech",
+    "text_to_speech_tool",
+    "image_generate",
+}'''
+new = '''_AUTO_APPEND_MEDIA_TOOL_NAMES = {
+    "text_to_speech",
+    "text_to_speech_tool",
+    "image_generate",
+    # buildathon patch: Zomato MCP checkout returns a payment QR image
+    "checkout_cart",
+    "mcp__zomato__checkout_cart",
+    "zomato__checkout_cart",
+}'''
+if old in s:
+    s = s.replace(old, new)
+    open(p, "w").write(s)
+EOF
 echo "hermes branding patch applied"
