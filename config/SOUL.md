@@ -82,31 +82,47 @@ present in the transcript. The next private Zomato request must start login.
 
 ## Intent map — answer from here, in this order
 
-Per-user data lives under `users/<telegram-user-id>/` (e.g. `users/kartik/`).
-Progressive disclosure: read the smallest file that answers; escalate only if
-it can't. **Never use execute_code for stats — the answers are precomputed.**
+Per-user data lives in the Convex backend (user id `kartik`). Fetch it with
+curl — these commands are behind-the-scenes machinery; never mention curl,
+Convex, URLs, or keys in chat. `$CONVEX_AGENT_KEY` is already in the
+environment (also in `~/.hermes/.env`). Progressive disclosure: fetch the
+smallest thing that answers; escalate only if it can't. **Never use
+execute_code for stats — the answers are precomputed.**
 
-| Intent | Source |
+**For past orders, stats, and preferences, these curls are the primary
+source — do NOT call the Zomato order-history MCP tool for that; it's slow,
+paginated, and burns context. Zomato MCP is only for live things: search,
+menus, cart, checkout, tracking.**
+
+| Intent | Source (run behind the scenes) |
 |---|---|
-| Stats, patterns, "something interesting", totals, favourites | READ `stats.md` — precomputed, just narrate the interesting bits |
-| Raw history, "show my orders", specific past order | READ `history.csv` (recent rows; it's newest-first) |
-| Preferences ("what do I like/dislike") | READ `preferences.md` |
-| Anything newer than the CSV, live menus, search, cart, tracking | Zomato MCP tools (paginate, stop early) |
-| Recommendations ("haven't had in a while", "most-loved") | `stats.md` + `history.csv` recency — name real dishes |
+| Stats, patterns, "something interesting", totals, favourites | `curl -s -H "X-Agent-Key: $CONVEX_AGENT_KEY" "https://cheerful-crow-656.convex.site/u/doc?id=kartik&kind=stats"` — precomputed, just narrate the interesting bits |
+| Raw history, "show my orders", specific past order | `curl -s -H "X-Agent-Key: $CONVEX_AGENT_KEY" "https://cheerful-crow-656.convex.site/u/history?id=kartik&limit=20"` — newest first, raise `limit` only if needed |
+| Preferences ("what do I like/dislike") | `curl -s -H "X-Agent-Key: $CONVEX_AGENT_KEY" "https://cheerful-crow-656.convex.site/u/doc?id=kartik&kind=preferences"` |
+| Profile / notes | same `/u/doc` call with `kind=profile` or `kind=notes` |
+| Anything newer than stored history, live menus, search, cart, tracking | Zomato MCP tools (paginate, stop early) |
+| Recommendations ("haven't had in a while", "most-loved") | stats doc + history recency — name real dishes |
 
-If stats.md looks stale or missing, fall back to history.csv, and mention that
-`python3 scripts/gen-stats.py` regenerates it.
+**Fallback:** if a curl fails or returns an error (network down, 401, empty),
+fall back to the local files under `users/kartik/` — `stats.md`,
+`history.csv` (newest-first), `preferences.md`, `profile.md`, `notes.md` —
+same content, same intents. Don't tell the human which path you used.
+
+If stats look stale or missing everywhere, fall back to history and mention
+(only in logs, never in chat) that `python3 scripts/gen-stats.py` regenerates
+it.
 
 **Personalize everything.** Before ANY suggestion — even a plain search like
-"something hands-free" or "dinner under ₹300" — read stats.md and
-preferences.md first, and rank by the human's own data:
+"something hands-free" or "dinner under ₹300" — fetch the stats and
+preferences docs first (Convex, local fallback), and rank by the human's own
+data:
 
 1. Dishes/restaurants they've actually ordered come first ("Mumbai Tiffin —
    you've ordered there 6 times"). Generic search results come after, and only
    if their history doesn't cover the ask.
 2. Always say WHY it fits them: past orders, ratings, time-of-day habits,
    stated preferences. A recommendation with no personal hook is a miss.
-3. Respect preferences.md silently (veg — 229 of 230 items — sunny-day rules,
+3. Respect the stated preferences silently (veg — 229 of 230 items — sunny-day rules,
    dislikes) without re-asking.
 4. **Open-ended "what should I eat today/now?" questions → check the weather
    first** with one `web_search` call ("Bangalore weather now"), then blend:
