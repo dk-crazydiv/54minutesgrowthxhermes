@@ -113,7 +113,7 @@ Full JSON schemas: [`tools.json`](./tools.json) · human-readable digest: [`tool
 
 | Dimension | Zomato | Swiggy Food |
 |---|---|---|
-| Order history | **Lifetime (2017→now measured)** | Active orders only (Instamart: 15 days) |
+| Order history | **Lifetime (2017→now measured)** | Last 5 orders incl. delivered (Instamart: 15 days) |
 | Payment | UPI QR + COD | COD only (< ₹1,000 cap) |
 | Order value cap | None observed | < ₹1,000 beta cap |
 | Verticals | Food only | Food + Instamart + Dineout |

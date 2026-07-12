@@ -6,7 +6,7 @@ Right now:
 - swiggy oauth flow and how to integrate and get it to work with hermes / telegram setup properly. 
 - Growth rules and rubrics create in a docs/hackathon_judging_criteria.md
 Later:
-- See if zomato is needed or not.
+- [x] See if zomato is needed or not. → Decided: Swiggy is the build target, Zomato research-only. See "Decision" section in docs/idea.md.
 
 Jatin:
 - explore limits on swiggy / zomato mcp drilling down into depths quickly

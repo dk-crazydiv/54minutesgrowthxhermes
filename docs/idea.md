@@ -240,4 +240,27 @@ Order from Swiggy without navigating Swiggy.
 
 
 
-Descision point: use swiggy/zomato depending on which one is better.
+## Decision: Swiggy is the build target; Zomato is research-only
+
+Decided 12 Jul 2026 from the measured data in `docs/swiggy/mcp-limits.md` and
+`docs/zomato/mcp-limits.md`.
+
+**Why Swiggy:**
+
+- **Verticals.** Swiggy covers Food + Instamart (+ Dineout) — flows 3 and 5
+  (cart optimisation, back-in-stock watch) need Instamart. Zomato is food-delivery only.
+- **Legality.** Zomato's README forbids third-party apps (personal use/testing only).
+  Swiggy has an explicit builders program with production access.
+- **Cart/coupon surface.** Both work, but Swiggy exposes coupons, go-to items, and
+  per-order `reorderMeta` that map directly onto the five hackathon flows.
+
+**Known Swiggy costs we accept (and design around):**
+
+- Food history is the **last 5 orders only** — "repeat order" means recent repeats,
+  not "same as last Diwali". Instamart history is 15 days.
+- **COD only, < ₹1,000 cap** — the demo script orders small and pays cash.
+- No refresh tokens until v1.1 — re-auth every 5 days.
+
+**What Zomato is still good for:** lifetime order history (2017→now measured) with
+dietary tags — usable for a one-off "your eating patterns" demo extension, never for
+the core flows. No further Zomato integration work is planned.
