@@ -4,6 +4,22 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — Swiggy/Zomato MCP research done, Hermes wired to both
+
+Commits: `8758870` (rate-limit research), `c99a536` (Hermes MCP setup).
+
+- Researched the Swiggy MCP's real capabilities and limits — no rate limit today
+  (planned: 120 req/min/user), Food history is last 5 orders only, Instamart 15 days,
+  order cap < ₹1,000, COD only, checkout is NOT idempotent. All in
+  `docs/swiggy/mcp-limits.md` with a quick-answers table.
+- Same for Zomato, measured empirically against the live server — no rate limit hit
+  at ~125 req/min, lifetime order history (777 orders back to 2017 exported), UPI QR
+  or COD only. `docs/zomato/mcp-limits.md`, full tool dump in
+  `docs/zomato/tools/tools.json`, order history export in `docs/zomato/data/`.
+- Wrote `scripts/setup-hermes-mcp.sh`: idempotently adds swiggy-food,
+  swiggy-instamart, and zomato as OAuth HTTP servers to `~/.hermes/config.yaml`.
+  Steps and gotchas in `docs/hermes/setup.md`.
+
 ## July 12 — Codex brain live, all three brains green
 
 Manager session: Claude Code `8de96528-6adc-4f8b-920c-67a8b031cf3c` (Fable, manager).
