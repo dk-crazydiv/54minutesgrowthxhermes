@@ -127,3 +127,21 @@ Defaults are sensible for our flows — nothing overridden in `~/.hermes/config.
   by `setup.sh`. If a teammate wants the same convenience in their own Claude
   Code session, they'd add a `.mcp.json` at the repo root — not done here to
   keep hackathon scope to the actual product (Hermes on Telegram).
+
+## Driving the agent from the CLI like a Telegram user (verified 2026-07-12)
+
+`hermes chat -q "<msg>" -Q --pass-session-id` = one non-interactive user turn;
+`--resume <session_id>` continues the same conversation (the id is printed on
+stdout as `session_id: ...`). This is what `tests/run.sh` uses.
+
+- MCP tools DO attach on this path (unlike `-z` one-shot) — but attach was
+  observed flaky once with no `-t` flag; pass `-t hermes-cli,zomato` to get the
+  full core toolset (incl. cronjob, memory) plus the Zomato MCP deterministically.
+- CLI sessions are separate from Telegram sessions: same `~/.hermes/state.db`,
+  different `source` — Telegram `/new` doesn't touch them and vice versa.
+- Ground truth for what the agent actually did lives in state.db:
+  `messages` (role, tool_name per call) and `sessions`
+  (message_count, tool_call_count, model). Grep tool_name there, not transcripts.
+- 400 "Unknown Model" trap: config default model can drift (a teammate set
+  `openai-codex:gpt-5.5`, which 400s). Pin `-m glm-5.2 --provider zai` for
+  reproducible runs.
