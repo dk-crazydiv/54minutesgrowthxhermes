@@ -19,6 +19,18 @@ claude mcp add --transport http swiggy-instamart https://mcp.swiggy.com/im
 - Authenticate in Claude Code with `/mcp` → select server → login.
 - Dev flow runs against `http://localhost` redirect without production approval; production access requires applying at mcp.swiggy.com/builders/access/.
 
+## Live verification (12 Jul 2026, Jatin's account)
+
+Both servers answered authenticated calls from Claude Code:
+
+- `get_addresses` (Food): 8 saved addresses, no coordinates, phone masked. Home = `295250620`.
+- `get_food_orders`: returned **exactly 5 orders** (Jul 29 → Dec 21) — the 5-order cap
+  is real on a live account. Every order carries full `reorderMeta` (itemIds, variants,
+  itemised totals), so repeat-order needs no menu re-search.
+- `get_orders` (Instamart): **empty** — no orders in the 15-day window on this account.
+  Demo prep: place Instamart orders a few days before demo day or flows 2/5 have no data.
+- Zomato MCP also live: 17 addresses, lifetime history paging works (20/page, `has_more`).
+
 ## Docs
 
 - Developer start: https://mcp.swiggy.com/builders/docs/start/developer/

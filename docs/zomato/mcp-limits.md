@@ -84,6 +84,11 @@ Zomato publishes no limits doc — everything below is empirically measured (12 
 - Search results lazily omit heavy fields (`variants: "NOT_RETRIEVED"`, `all_addons_data: "NOT_RETRIEVED"`) — fetch the menu tools for full detail.
 - Tool IDs vocabulary: restaurants `res_id` (int) / `chain_id`; variants `v_…`; add-ons `ctl_…`; carts `cart_id`.
 - `bind_user_number` / `bind_user_number_verify_code` exist for phone+OTP binding (status enum {1,2,3}).
+- Old orders (2017–2019 era) return `dietary_tag: "undefined"` — the veg/non-veg tag is only populated on recent orders.
+- Cross-address history is identical except `res_ddt` (delivery ETA), which is recomputed relative to the queried address.
+- Date-filtered responses can return all matches in one page with `has_more: false` and an empty `last_created_timestamp: {}` in postback — dates still omit the year, so anchor years from the window you asked for.
+- Search (verified 12 Jul): the 9 filter knobs work empirically (min_rating dropped low-rated results; max_price restricted inline dishes to min_price ≤ threshold). One search call returns dish candidates with exact prices + variant_ids + restaurant rating/votes/ETA/distance/offer text. Caveats: a default 10-result page is ~67KB (blows tool-output limits — use `page_size` 3–5); per-dish `rating`/`reviews` are always 0 on the search/menu surface; no delivery-fee or promoted flags pre-cart; distance/time constraints can also be embedded in the keyword itself.
+- `get_menu_items_listing` bonus: its `partial_menu` (~10 recommended items) comes in full detail including populated `health_info` (protein/carbs/calories + score) and personalization (`por_text`: "You ordered 17 months ago") — the nutrition fields that are zeroed on search are real here.
 
 ## 6. The 11 tools
 

@@ -9,7 +9,7 @@ Researched 12 Jul 2026 from Swiggy Builders Club docs v1.0 (`mcp.swiggy.com/buil
 | Rate limit today? | **None** (abuse shed upstream as 5xx) | official docs + live burst test |
 | Rate limit planned? | 120 req/min/user/server; write tools 30/min; burst 2× over 10 s; 429 + `Retry-After` | official docs |
 | Token lifetime? | Access token **5 days**, no refresh token (v1.1); session 30 days sliding | official docs |
-| Oldest Food order? | Last **5 orders only**, incl. delivered — observed span ~1 year; **no pagination/count param** | live call 12 Jul 2026 |
+| Oldest Food order? | Last **5 orders only**, incl. delivered — observed span ~1 year; **no pagination/count param**. Re-verified adversarially: extra `page`/`count`/`offset`/`limit` params silently ignored, identical 5 back; history is account-wide (any addressId → same 5). Untested loophole: `get_food_order_details` with an out-of-band older orderId (IDs unguessable from MCP surface). `"total":5` may mean "returned", not "exist". | 2 live probes 12 Jul 2026 |
 | Oldest Instamart order? | **15 days**; default 10, max ~20 per call | tool schema |
 | Max order value? | **< ₹1,000** (Food & Instamart, beta cap) | official docs |
 | Min order? | Instamart ₹99; Food per-restaurant | official docs |
@@ -45,7 +45,7 @@ One OAuth 2.1 PKCE token (phone + OTP) works across all three. Access token 5 da
 | Server | Order history | Max per call | Forward-looking |
 |---|---|---|---|
 | Instamart | **Last 15 days only** (`get_orders`) | 20 orders (default 10) | Immediate delivery only |
-| Food | **Last 5 orders, incl. delivered** — observed span ~1 year back (verified live 12 Jul 2026); no count/pagination param, always returns 5 | 5 (fixed) | Immediate only, no scheduling |
+| Food | **Last 5 orders, incl. delivered** — observed span ~1 year back (verified live 12 Jul 2026); no count/pagination param (schema: only `addressId`, `activeOnly`), always returns 5. History is **account-wide, not address-scoped** — different addressIds return the identical 5 orders | 5 (fixed) | Immediate only, no scheduling |
 | Dineout | **No history list** — status by known orderId only | 1 | Slots ~7 days ahead |
 
 - Preference signal: `your_go_to_items` (Instamart only, frequent/recent items per address; lookback undocumented).
@@ -55,7 +55,7 @@ One OAuth 2.1 PKCE token (phone + OTP) works across all three. Access token 5 da
 
 | Entity | You get | You don't get |
 |---|---|---|
-| Order (in window) | Items + quantities/variants, itemized bill (item/delivery/handling/grand total), status, refunds, delivery address + coords, payment method | Anything older than window (Food: older than last 5 orders); invoices |
+| Order (in window) | Items + quantities/variants, item price/subtotal + `totalPaid`, status, refunds, delivery address + coords, payment method | Anything older than window (Food: older than last 5 orders); invoices; **no delivery/handling fee line items** — `get_food_order_details` (verified live 12 Jul 2026) returns per-item price/subtotal and grand `totalPaid` only, not the full fee breakdown |
 | Live tracking | Status, ETA, courier location, store info | — |
 | Restaurant (Food) | Ratings, distance, open/closed, offers, full menu with variants/addons, coupons | Historical prices |
 | Product (Instamart) | Name, brand, pack-size variants (`spinId`), address-scoped availability | Bulk catalog export (forbidden abuse pattern) |
@@ -81,7 +81,7 @@ One OAuth 2.1 PKCE token (phone + OTP) works across all three. Access token 5 da
 - `get_addresses` strips coordinates; `track_order` needs lat/lng — get them from `get_orders`.
 - Food items carry EITHER `variations` OR `variantsV2`, never both; addon validity gated by variant (`valid_addons`).
 - `coupon_applied` with `coupon_discount = 0` = suggested, NOT applied.
-- Instamart `get_orders` default `orderType` is `"DASH"`, not `"INSTAMART"`.
+- Instamart `get_orders` default `orderType` is `"DASH"`, not `"INSTAMART"`. Verified live 12 Jul 2026: defaults, `orderType:"INSTAMART"` and `"ALL"` (with `count:20`, `activeOnly:false`) all return `{"orders":[],"hasMore":false}` on this account — yet `your_go_to_items` still returns 6 frequent products, so preference data survives beyond the 15-day order window.
 - Carts have a TTL (`CART_EXPIRED`) — refetch cart at every turn, never cache in agent memory.
 - No symbolic error codes in v1.0 — classify on HTTP status + `error.message` text.
 - IDE-installed MCP servers hit **production** — real orders on your account. Staging (`mcp-staging.swiggy.com`) needs an access application.
