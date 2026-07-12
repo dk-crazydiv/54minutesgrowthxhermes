@@ -1,0 +1,9 @@
+.env
+.odin/worktrees/
+.odin/logs/
+.odin/costs/
+.proof/
+node_modules/
+__pycache__/
+vendor/
+

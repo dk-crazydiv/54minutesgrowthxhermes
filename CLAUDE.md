@@ -2,9 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Start here, every session
+
+**Read `docs/roadmap/RESUME.md` first and run `bash bootstrap/watch_git.sh once`.** RESUME.md is the entrypoint: current state, the watcher ritual, and the hard facts. Everyone works on main — small commits, push often, pull before you push; the watcher tells the manager when new work landed. Voice for all docs and updates: `docs/roadmap/TONE.md`.
+
 ## What this project is
 
-**Swiggy Companion Agent** — a conversational agent built on Hermes and the Swiggy MCP that lets users search, repeat, optimise, place, and track Swiggy Food and Instamart orders without navigating the app. Read `docs/idea.md` first in every session — it is the product spec and defines the hackathon scope.
+Two layers, one repo:
+
+1. **The platform (now):** a Hermes agent on Kartik's Telegram, powered by his subscriptions — GLM (Z.AI) and MiniMax today, Codex (ChatGPT subscription) next. See `docs/roadmap/OBJECTIVE.md`.
+2. **The product idea (buildathon):** the **Swiggy Companion Agent** — search, repeat, optimise, place, and track Swiggy Food and Instamart orders by chatting. Spec and scope: `docs/idea.md`.
 
 **Hackathon scope (build these five flows, nothing more):**
 1. Natural-language search

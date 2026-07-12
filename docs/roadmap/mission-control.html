@@ -1,0 +1,93 @@
+<title>Hermes Buildathon — Mission Control</title>
+<style>
+  :root {
+    --paper: #f4f7f9; --ink: #1c2733; --muted: #5b6b7a; --line: #d7dfe6;
+    --accent: #2aa1da; --wait: #c77d1e; --live: #2e8b57; --broken: #b3423a;
+    --card: #ffffff; --mono-bg: #e9eef2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #101820; --ink: #dce6ee; --muted: #8fa1b0; --line: #263442;
+      --accent: #4db8e8; --wait: #e0a04a; --live: #58b58a; --broken: #d4766f;
+      --card: #17222c; --mono-bg: #1d2a36; }
+  }
+  :root[data-theme="dark"] { --paper: #101820; --ink: #dce6ee; --muted: #8fa1b0; --line: #263442;
+    --accent: #4db8e8; --wait: #e0a04a; --live: #58b58a; --broken: #d4766f;
+    --card: #17222c; --mono-bg: #1d2a36; }
+  :root[data-theme="light"] { --paper: #f4f7f9; --ink: #1c2733; --muted: #5b6b7a; --line: #d7dfe6;
+    --accent: #2aa1da; --wait: #c77d1e; --live: #2e8b57; --broken: #b3423a;
+    --card: #ffffff; --mono-bg: #e9eef2; }
+
+  body { background: var(--paper); color: var(--ink);
+    font: 16px/1.55 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    margin: 0; padding: 2.5rem 1.25rem 4rem; }
+  main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+  header h1 { font-size: 1.6rem; font-weight: 600; margin: 0; text-wrap: balance; }
+  .stamp { color: var(--muted); font-size: .85rem; margin-top: .3rem; }
+  .stamp b { color: var(--live); font-weight: 600; }
+  h2 { font-size: .8rem; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .7rem; font-weight: 600; }
+  section { margin: 0; }
+  .item { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--line);
+    border-radius: 4px; padding: .8rem 1rem; margin-bottom: .6rem; }
+  .item p { margin: .25rem 0 0; color: var(--muted); font-size: .92rem; }
+  .item strong { font-weight: 600; }
+  .wait { border-left-color: var(--wait); }
+  .broken { border-left-color: var(--broken); }
+  .flight { border-left-color: var(--accent); }
+  .done { border-left-color: var(--live); }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .85em;
+    background: var(--mono-bg); padding: .1em .35em; border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  td { padding: .45rem .5rem; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { color: var(--muted); white-space: nowrap; width: 11rem; }
+  .tablewrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 4px; }
+  footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+<main>
+  <header>
+    <h1>Hermes buildathon — mission control</h1>
+    <div class="stamp">Manager Fable · updated after Codex went live, July 12 · bot status: <b>all three brains green, gateway running</b></div>
+  </header>
+
+  <section>
+    <h2>Waiting on you</h2>
+    <div class="item wait"><strong>Send the bot one message from your phone.</strong>
+      <p>The gateway is running from this repo and both brains answer, but only you can confirm the round-trip lands on Telegram.</p></div>
+    <div class="item wait"><strong>Fresh bot token from @BotFather.</strong>
+      <p>The old one leaked in a board comment once. Doesn't block anything, but sooner is better.</p></div>
+  </section>
+
+  <section>
+    <h2>Broken or missing</h2>
+    <div class="item broken"><strong>The gateway isn't a service yet.</strong>
+      <p>It's a background process now, so it survives the terminal but not a reboot. <code>hermes gateway install</code> is the fix, queued on the board.</p></div>
+  </section>
+
+  <section>
+    <h2>In flight</h2>
+    <div class="item done"><strong>This repo is stood up.</strong>
+      <p><code>setup.sh</code> ran clean, GLM and MiniMax both answered PONG from <code>scripts/smoke.sh</code>, and the gateway is running (pid on record). Changelog started in <code>docs/roadmap/CHANGELOG.md</code> with session IDs.</p></div>
+    <div class="item done"><strong>Teammates can onboard from the repo alone.</strong>
+      <p>RESUME.md has the once-only path: clone, setup, secrets from Kartik, own mission-control page per Fable. Project permissions are committed so nobody gets prompted per command.</p></div>
+    <div class="item done"><strong>Git watcher built and tested.</strong>
+      <p><code>bootstrap/watch_git.sh</code> reports every push, never pulls on its own. Ran clean against the GitHub remote.</p></div>
+    <div class="item done"><strong>Codex is live on your ChatGPT subscription.</strong>
+      <p>All three brains answer PONG from <code>scripts/smoke.sh</code>. The working import path (and the 429 trap in the official flow) is written up in <code>docs/setup_docs/codex_setup.md</code>, alongside GLM and Telegram setup guides.</p></div>
+    <div class="item done"><strong><code>ACTIVE_AGENTS.md</code> at the repo root.</strong>
+      <p>Says which brains and surfaces run on each machine. Template committed, then gitignored, so every teammate keeps their own.</p></div>
+  </section>
+
+  <section>
+    <h2>The board (docs/roadmap/BACKLOG.md)</h2>
+    <div class="tablewrap"><table>
+      <tr><td>Now</td><td>Stand this repo up · Codex brain online · gateway as a service · rotate bot token</td></tr>
+      <tr><td>Next</td><td>Explicit model routing (kill the "defaulting to glm-5.2" log line) · gateway health watcher · cold-start drill from RESUME.md</td></tr>
+      <tr><td>Later</td><td>More subscriptions as drop-in providers · give the bot real jobs (cron, memory, MCP are built in)</td></tr>
+    </table></div>
+  </section>
+
+  <footer>
+    Every session starts at <code>docs/roadmap/RESUME.md</code> and runs
+    <code>bash bootstrap/watch_git.sh once</code>. This page gets rewritten, same URL, at every meaningful turn.
+  </footer>
+</main>
