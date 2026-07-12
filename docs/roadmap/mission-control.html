@@ -45,44 +45,38 @@
 </style>
 <main>
   <header>
-    <h1>Hermes buildathon — mission control</h1>
-    <div class="stamp">Manager Fable · updated after Codex went live, July 12 · bot status: <b>all three brains green, gateway running</b></div>
+    <h1>Hermes buildathon — mission control (Jatin's Fable)</h1>
+    <div class="stamp">Manager Fable · session <code>39c8a1a3</code> · July 12 · <b>Swiggy chosen as build target; both MCPs verified live</b></div>
   </header>
 
   <section>
     <h2>Waiting on you</h2>
+    <div class="item wait"><strong>MiniMax key is empty in <code>.env</code>.</strong>
+      <p><code>scripts/smoke.sh</code> exits early because <code>MINIMAX_API_KEY</code> is blank in both the repo copy and <code>~/.hermes/.env</code>. Jatin chose to skip for now — GLM alone carries the bot. Paste the key when convenient.</p></div>
     <div class="item wait"><strong>Send the bot one message from your phone.</strong>
-      <p>The gateway is running from this repo and both brains answer, but only you can confirm the round-trip lands on Telegram.</p></div>
+      <p>Gateway is up and supervised; only a human can confirm the Telegram round-trip.</p></div>
     <div class="item wait"><strong>Fresh bot token from @BotFather.</strong>
       <p>The old one leaked in a board comment once. Doesn't block anything, but sooner is better.</p></div>
   </section>
 
   <section>
-    <h2>Broken or missing</h2>
-    <div class="item broken"><strong>The gateway isn't a service yet.</strong>
-      <p>It's a background process now, so it survives the terminal but not a reboot. <code>hermes gateway install</code> is the fix, queued on the board.</p></div>
-  </section>
-
-  <section>
     <h2>In flight</h2>
-    <div class="item done"><strong>This repo is stood up.</strong>
-      <p><code>setup.sh</code> ran clean, GLM and MiniMax both answered PONG from <code>scripts/smoke.sh</code>, and the gateway is running (pid on record). Changelog started in <code>docs/roadmap/CHANGELOG.md</code> with session IDs.</p></div>
-    <div class="item done"><strong>Teammates can onboard from the repo alone.</strong>
-      <p>RESUME.md has the once-only path: clone, setup, secrets from Kartik, own mission-control page per Fable. Project permissions are committed so nobody gets prompted per command.</p></div>
-    <div class="item done"><strong>Git watcher built and tested.</strong>
-      <p><code>bootstrap/watch_git.sh</code> reports every push, never pulls on its own. Ran clean against the GitHub remote.</p></div>
-    <div class="item done"><strong>Codex is live on your ChatGPT subscription.</strong>
-      <p>All three brains answer PONG from <code>scripts/smoke.sh</code>. The working import path (and the 429 trap in the official flow) is written up in <code>docs/setup_docs/codex_setup.md</code>, alongside GLM and Telegram setup guides.</p></div>
-    <div class="item done"><strong><code>ACTIVE_AGENTS.md</code> at the repo root.</strong>
-      <p>Says which brains and surfaces run on each machine. Template committed, then gitignored, so every teammate keeps their own.</p></div>
+    <div class="item done"><strong>Decision made: Swiggy is the build target, Zomato research-only.</strong>
+      <p>Written into <code>docs/idea.md</code> from measured limits data (commit <code>f7a3009</code>). Instamart vertical + legal builders program + reorderMeta won it; Zomato's lifetime history is a demo extension at most (its README forbids third-party apps).</p></div>
+    <div class="item done"><strong>Both MCPs verified live from Claude Code, on real accounts.</strong>
+      <p>Swiggy Food: exactly 5 orders returned (cap confirmed), full reorderMeta present. Swiggy Instamart: connected but zero orders in the 15-day window — demo needs fresh Instamart orders placed beforehand. Zomato: lifetime pagination works. Live findings in <code>docs/swiggy/mcp-setup.md</code>.</p></div>
+    <div class="item done"><strong>Gateway is now a launchd service.</strong>
+      <p>Supervised (auto-restart on crash, start at login) — the old "dies with a reboot" gap is closed. One kill-test still owed as formal proof for the backlog item.</p></div>
+    <div class="item flight"><strong>Next build slice: flows 1+2 (NL search + repeat order) live against Swiggy MCP.</strong>
+      <p>Shapes-first: dump real tool responses into <code>docs/swiggy/tools/</code>, then run the demo conversation end-to-end.</p></div>
   </section>
 
   <section>
-    <h2>The board (docs/roadmap/BACKLOG.md)</h2>
+    <h2>The board (docs/roadmap/BACKLOG.md + human_backlog.md)</h2>
     <div class="tablewrap"><table>
-      <tr><td>Now</td><td>Stand this repo up · Codex brain online · gateway as a service · rotate bot token</td></tr>
-      <tr><td>Next</td><td>Explicit model routing (kill the "defaulting to glm-5.2" log line) · gateway health watcher · cold-start drill from RESUME.md</td></tr>
-      <tr><td>Later</td><td>More subscriptions as drop-in providers · give the bot real jobs (cron, memory, MCP are built in)</td></tr>
+      <tr><td>Now</td><td>Live phone check · rotate bot token · kill-test the launchd gateway · fill MiniMax key</td></tr>
+      <tr><td>Next</td><td>Swiggy tool-shape dump · flows 1+2 prototype · explicit model routing · gateway health watcher</td></tr>
+      <tr><td>Later</td><td>Flows 3–5 (cart optimise, calendar timing, back-in-stock watch) · more providers · real bot jobs</td></tr>
     </table></div>
   </section>
 

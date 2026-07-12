@@ -242,6 +242,19 @@ if [ "$(readlink -f "$HOME/.local/bin/hermes" 2>/dev/null || true)" != "$(readli
 fi
 
 ok "Hermes installed: $(command -v hermes || echo "$HOME/.local/bin/hermes")"
+
+# ---- Swiggy/Zomato MCP wiring ----------------------------------------------
+# Repo-local, portable: scripts/setup-hermes-mcp.sh writes the mcp_servers:
+# block into $HERMES_HOME_DIR/config.yaml from the endpoints documented in
+# docs/swiggy/mcp-setup.md and docs/zomato/mcp-setup.md. Idempotent, so it's
+# safe on every setup.sh run. It only writes server URL + transport — auth is
+# per-user (OAuth/OTP) and is never stored in the repo; each teammate logs in
+# themselves the first time they run `hermes chat` (see docs/hermes/setup.md).
+if [ -n "$PROJECT_ROOT" ] && [ -x "$PROJECT_ROOT/scripts/setup-hermes-mcp.sh" ]; then
+    log "Wiring Swiggy/Zomato MCP servers into $HERMES_HOME_DIR/config.yaml..."
+    HERMES_CONFIG="$HERMES_HOME_DIR/config.yaml" "$PROJECT_ROOT/scripts/setup-hermes-mcp.sh"
+fi
+
 echo
 log "Smoke test:"
 echo "    bash scripts/smoke.sh"
