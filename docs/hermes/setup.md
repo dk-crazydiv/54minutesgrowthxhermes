@@ -75,6 +75,29 @@ experiment), re-running `scripts/setup-hermes-mcp.sh` added the missing
 clean-room tested against an empty `HERMES_CONFIG` path with no pre-existing
 file — produced the full three-server block, and a second run was a no-op.
 
+## Fresh chat from Telegram (verified 2026-07-12)
+
+Built in — no config needed. `/new` (alias `/reset`) is a native gateway slash
+command: it rotates the session ID, clears history/queued messages/approval state,
+and starts clean. `/new <title>` names the new session. It's registered in the
+Telegram bot command menu automatically (`set_my_commands`). `/compress` manually
+compacts a long session without losing it.
+
+## Context limits (defaults inspected 2026-07-12, vendor/hermes-agent/hermes_cli/config.py)
+
+Defaults are sensible for our flows — nothing overridden in `~/.hermes/config.yaml`:
+
+- `compression.enabled: true`, `threshold: 0.50` — auto-compacts history at 50% of the
+  model's context window, keeping the last 20 messages (`protect_last_n`) verbatim.
+- `tool_output.max_bytes: 50_000` — caps terminal/read_file output. **MCP tool results
+  are NOT capped by this** — no config knob exists for MCP result size, so a full
+  Zomato history export (39 pages) must be paginated by the agent, never dumped in one call.
+- `agent.max_turns` 90 per message (gateway log: "Agent budget: max_iterations=90").
+- OAuth note: the gateway runs non-interactive — MCP servers without cached tokens in
+  `~/.hermes/mcp-tokens/` are skipped with a warning at startup. Run
+  `hermes mcp login <server>` (in a real TTY, or `script -q /dev/null hermes mcp login <server>`)
+  once per server, then restart the gateway (`scripts/telegram.sh stop && start-bg`).
+
 ## Notes
 
 - Auth caveats, rate limits, and endpoint details live in
