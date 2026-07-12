@@ -53,6 +53,16 @@ a Claude Code session, and ten minutes.
   MCP tool results have NO size cap — paginate big pulls (docs/hermes/setup.md).
 - **The whole team is on one thing now: prove the use cases live over Telegram.**
   The list is the Now section of BACKLOG.md.
+- **North star: `docs/roadmap/SCORE.md`** — honest Revenue-track self-score (74 right
+  now) and the ranked points-per-hour moves. Optimize against it.
+- In flight (subagents, will land on main): a runnable test suite in `tests/` that
+  drives the agent as a mock Telegram user (CLI sessions are separate from Kartik's
+  Telegram thread — tests never touch his context, and NEVER call checkout_cart);
+  a per-user memory store in `users/<id>/` (Kartik's full Zomato history as CSV so
+  history queries stop re-pulling 39 pages); a session-grouped debug dashboard +
+  refreshed mission-control.html.
+- Priyam is building per-Telegram-user Zomato auth separately; the users/ folder
+  naming expects a telegram user id. Pick it up when his push lands (watcher will say).
 - Everyone works on main, no branches. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the
