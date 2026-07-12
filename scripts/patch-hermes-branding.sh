@@ -53,4 +53,25 @@ if old in s:
     s = s.replace(old, new)
     open(p, "w").write(s)
 EOF
+python3 - <<'EOF'
+# 4) upscale tiny cached PNGs (Zomato's payment QR arrives ~100px) so they're
+# scannable on a phone. Uses macOS sips; no-op if it fails.
+p = "vendor/hermes-agent/gateway/platforms/base.py"
+s = open(p).read()
+anchor = """    filepath.write_bytes(data)
+    return str(filepath)"""
+patched = """    filepath.write_bytes(data)
+    # buildathon patch: upscale tiny PNGs (payment QRs) to a scannable size
+    try:
+        if ext.lower() == ".png" and len(data) < 20000:
+            import subprocess
+            subprocess.run(["sips", "--resampleWidth", "800", str(filepath)],
+                           capture_output=True, timeout=10)
+    except Exception:
+        pass
+    return str(filepath)"""
+if anchor in s and "upscale tiny PNGs" not in s:
+    s = s.replace(anchor, patched, 1)
+    open(p, "w").write(s)
+EOF
 echo "hermes branding patch applied"
