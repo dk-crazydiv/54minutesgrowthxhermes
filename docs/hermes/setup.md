@@ -110,6 +110,12 @@ Defaults are sensible for our flows — nothing overridden in `~/.hermes/config.
   `hermes mcp login <server>` (in a real TTY, or `script -q /dev/null hermes mcp login <server>`)
   once per server, then restart the gateway (`scripts/telegram.sh stop && start-bg`).
 
+## Web search + voice notes
+
+Wired by `scripts/setup-hermes-search-voice.sh` (runs from `setup.sh`):
+Linkup web search with ddgs fallback, and keyless local-whisper STT for
+Telegram voice notes. Details and verification: `docs/hermes/search-and-voice.md`.
+
 ## Notes
 
 - Auth caveats, rate limits, and endpoint details live in

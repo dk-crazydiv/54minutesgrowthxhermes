@@ -255,6 +255,16 @@ if [ -n "$PROJECT_ROOT" ] && [ -x "$PROJECT_ROOT/scripts/setup-hermes-mcp.sh" ];
     HERMES_CONFIG="$HERMES_HOME_DIR/config.yaml" "$PROJECT_ROOT/scripts/setup-hermes-mcp.sh"
 fi
 
+# ---- Web search (Linkup) + voice STT wiring ---------------------------------
+# scripts/setup-hermes-search-voice.sh installs the web-linkup plugin, points
+# web.search_backend at it (ddgs fallback until LINKUP_API_KEY lands in .env),
+# and installs faster-whisper for keyless local voice-note transcription.
+# Idempotent. Details: docs/hermes/search-and-voice.md
+if [ -n "$PROJECT_ROOT" ] && [ -x "$PROJECT_ROOT/scripts/setup-hermes-search-voice.sh" ]; then
+    log "Wiring web search (Linkup) + voice STT..."
+    HERMES_CONFIG="$HERMES_HOME_DIR/config.yaml" "$PROJECT_ROOT/scripts/setup-hermes-search-voice.sh"
+fi
+
 echo
 log "Smoke test:"
 echo "    bash scripts/smoke.sh"

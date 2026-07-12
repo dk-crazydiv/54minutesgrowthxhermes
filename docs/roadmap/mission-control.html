@@ -62,6 +62,12 @@
   </section>
 
   <section>
+    <h2>In flight (Jatin's Fable, session 39c8a1a3)</h2>
+    <div class="item done"><strong>Voice notes work now; Linkup wired, waiting only on the key.</strong>
+      <p>Hermes had both seams built in. Voice: the Telegram adapter already transcribes — the gap was <code>faster-whisper</code> missing from the venv; installed, model cached, <code>transcribe_audio()</code> proven, <strong>no key needed</strong>. Search: new repo-carried plugin <code>config/hermes-plugins/web-linkup/</code> registers Linkup as the search backend, falling back to keyless ddgs until <code>LINKUP_API_KEY</code> lands in <code>.env</code> (weather query already answers via fallback). Both wired into <code>setup.sh</code> for teammates. Details: <code>docs/hermes/search-and-voice.md</code>. Human test owed: voice-note the bot "what's the weather in Bangalore".</p></div>
+  </section>
+
+  <section>
     <h2>The one thing: prove these four over Telegram</h2>
     <div class="item"><strong>Who does what:</strong> <b>Kartik</b> sends each message from Telegram and approves any checkout. <b>Fable (AI)</b> watches the dashboard, fixes whatever the bot fumbles, and sanity-tests via CLI first. Sanity-passed cases get flagged to Kartik to replay.</div>
     <div class="item flight"><strong>1. "Show my order history."</strong>
