@@ -38,12 +38,11 @@ a Claude Code session, and ten minutes.
 
 ## Where things stand
 
-- This repo is stood up: `setup.sh` ran, both brains answer PONG from `smoke.sh`,
-  and the gateway is running in the background. One live phone check still pending.
-- The gateway is a background process, not a service. It dies with a reboot. Top ops gap.
-- The bot token leaked once in a board comment and still needs rotating.
-- Codex is not enabled yet, but Hermes ships the provider. It reads `~/.codex/auth.json`
-  from the Codex CLI. One login plus a smoke case turns it on.
+- This repo is stood up: `setup.sh` ran, all three brains (glm, minimax, codex) answer
+  PONG from `smoke.sh`, and the gateway is running in the background
+  (bot: @swiggy_mcp_buildathon_bot).
+- The build target is the Swiggy Companion Agent — five flows in `docs/idea.md`.
+  Current work order lives in BACKLOG.md; landing page is in `site/`.
 - Everyone works on main, no branches. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the
