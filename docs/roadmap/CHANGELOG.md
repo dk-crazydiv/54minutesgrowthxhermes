@@ -4,6 +4,26 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — GrowthX handbook saved to the repo
+
+Worker session: Claude Code (Opus), pushed as priyam307. Not a manager session, so no
+mission-control page went with it.
+
+- Saved the full GrowthX x Hermes Builder Handbook offline under `growthx-handbook/`, so
+  the rubric and rules don't need the live site mid-build. 16 markdown files: an index,
+  the 12 sections, and the scoring rubric split one file per track under
+  `scoring-tracks/`. Pushed in commit `e5bc086`.
+- The source page is a JavaScript app. A plain fetch got only the shell. What worked:
+  pull the server-rendered HTML with curl (998 KB) and strip the tags to text, then
+  hand-write the markdown from that.
+- Gap: the 93-idea library is loaded by JavaScript and isn't in the HTML, so it's not
+  captured. `growthx-handbook/07-idea-library.md` says so and links back to the live page.
+- Added a `/changelog` command at `.claude/commands/changelog.md`. It appends to this
+  file, in this format, from git history. Removed a stray root `CHANGELOG.md` I had
+  started before this one existed — this is the only changelog.
+- Left alone: an untracked `docs/hermes/telegram-setup.md` I didn't write. Looks like an
+  old copy of `docs/setup_docs/telegram_setup.md`. Flagging, not touching.
+
 ## July 12 — Swiggy/Zomato MCP research done, Hermes wired to both
 
 Commits: `8758870` (rate-limit research), `c99a536` (Hermes MCP setup).
