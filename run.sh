@@ -15,7 +15,11 @@ echo "== 3/6 zomato MCP"
 bash scripts/setup-hermes-mcp.sh
 
 echo "== 4/6 smoke (all brains must PONG)"
-bash scripts/smoke.sh
+smoke_rc=0
+bash scripts/smoke.sh || smoke_rc=$?
+if [ "$smoke_rc" -ne 0 ]; then
+  echo "WARN: brain smoke is red; continuing so watcher and Telegram gateway still start." >&2
+fi
 
 echo "== 5/6 git watcher"
 bash bootstrap/watch_git.sh start-bg || true
@@ -32,3 +36,5 @@ Ready. Standard instructions for everyone:
   4. Git: main only. Pull --rebase before push. Small commits. Push often.
   5. Never call checkout_cart in tests — real money. Kartik gives the final yes.
 EOF
+
+exit "$smoke_rc"

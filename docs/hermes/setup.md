@@ -37,6 +37,116 @@ mcp_servers:
     auth: oauth
 ```
 
+## Telegram end-to-end flow
+
+The supported demo path is Telegram → Hermes gateway → Zomato MCP. It runs in **single-user safe mode**: the Telegram allowlist contains one trusted user and the Zomato token namespace is shared by the default Hermes profile. Do not enable public access until OAuth tokens and live MCP clients are isolated per Telegram user.
+
+### 1. Start the stack
+
+```sh
+./run.sh
+```
+
+`run.sh` installs/wires Hermes, configures Zomato MCP, runs the brain smoke test, ensures one git watcher is running, and checks or starts the launchd-supervised Telegram gateway. A red smoke test is reported and becomes the final non-zero exit status, but it does not prevent the watcher or gateway from starting.
+
+### 2. First private Zomato request
+
+The user sends a message such as:
+
+```text
+What is my last Zomato order?
+```
+
+Before any private account action, the bot runs:
+
+```sh
+python3 scripts/zomato_chat_oauth.py status
+```
+
+If `token_present` is true, it calls the relevant Zomato tools. If false, it must not call account tools or answer from old transcript data; it runs `start` and sends the returned authorization link.
+
+### 3. Login from Telegram
+
+```sh
+python3 scripts/zomato_chat_oauth.py start
+```
+
+This starts `hermes mcp login zomato` in a detached pseudo-terminal with browser auto-open suppressed, captures the authorization URL, and keeps the localhost callback listener alive.
+
+The bot sends that link with four instructions:
+
+1. Open it and finish Zomato login.
+2. The final localhost page may fail on a phone because `127.0.0.1` points to the phone.
+3. Copy the full callback URL from the address bar.
+4. Paste it only into the originating Telegram chat.
+
+The callback is a short-lived secret. Never echo it, put it in shell arguments, or commit it.
+
+### 4. Relay the callback
+
+When the callback is pasted, the bot runs one foreground command:
+
+```sh
+python3 scripts/zomato_chat_oauth.py relay-latest
+```
+
+The helper reads the newest callback only from the Telegram session and numeric user ID bound to the pending OAuth transaction, then validates:
+
+- scheme is `http`;
+- host is exactly `127.0.0.1`;
+- path is exactly `/callback`;
+- port matches the active listener;
+- `state` matches the pending OAuth transaction;
+- `code` is present.
+
+It relays the URL to the host listener, waits a bounded time for token creation, and returns authenticated status. This replaces the old background PTY `submit` + `wait 120` flow; focused verification completes the relay in under three seconds locally. Normal Telegram/model latency may still add several seconds.
+
+Hermes stores credentials under:
+
+```text
+~/.hermes/mcp-tokens/zomato.json
+~/.hermes/mcp-tokens/zomato.client.json
+~/.hermes/mcp-tokens/zomato.meta.json
+```
+
+Tokens and client credentials are mode `0600` and never committed.
+
+### 5. Fulfil the original request
+
+After authentication, the bot re-runs auth status, resolves a saved address when required, calls Zomato MCP, and replies in Telegram. Zomato currently exposes 11 tools for addresses, restaurant search, menus, history, tracking, carts, offers, and checkout.
+
+For large history requests, paginate selectively. Do not pull or paste the full account history into a chat turn.
+
+### 6. Logout and prove isolation
+
+The user sends `logout zomato`. The bot runs:
+
+```sh
+python3 scripts/zomato_logout.py --json --restart-gateway
+```
+
+This removes the Zomato access token and OAuth client file, terminates the verified OAuth worker process group (worker plus its `hermes mcp login` child), clears pending chat OAuth state, preserves provider discovery metadata, and schedules a gateway restart to invalidate any authenticated MCP transport still held in memory. Logout reports failure if the process group cannot be stopped or the gateway restart cannot be scheduled.
+
+A real logout check is:
+
+```sh
+python3 scripts/zomato_chat_oauth.py status
+hermes mcp test zomato
+```
+
+Expected: `token_present` is false and the MCP test requires authentication. Deleting token files alone is not proof of logout; the live gateway connection must also be recycled.
+
+### 7. Money boundary
+
+Tests and autonomous flows must never call `checkout_cart`. In a real order:
+
+1. Build one restaurant cart.
+2. Ask the user to choose UPI or cash on delivery.
+3. Show the authoritative final bill and delivery details.
+4. Warn that Zomato MCP has no cancel/refund tool.
+5. Wait for explicit confirmation.
+6. Call checkout once. On ambiguity, check tracking/order status before any retry.
+
 ## Running
 
 ```sh
@@ -68,14 +178,14 @@ Repo-carried (works after `git clone && bash setup.sh`, no manual step):
 - Everything else `setup.sh` already installs into `~/.hermes` from this repo:
   `.env` → `~/.hermes/.env`, `config/SOUL.md` → `~/.hermes/SOUL.md`.
 
-Not repo-carried, by design (auth is per-user, never committed):
-- OAuth/OTP login for each server. Tokens land in Hermes's own auth store
-  under `~/.hermes` (per-user, per-machine) — nothing to copy from a
-  teammate's setup. Each person authenticates themselves the first time by
-  running `hermes chat` and completing the printed authorize URL: Zomato is
-  OAuth (redirect URI must be pre-whitelisted by Zomato — see
-  `docs/zomato/mcp-setup.md`). If Hermes is already running, reload with
-  `/reload-mcp` instead of restarting.
+Not repo-carried, by design (auth is operator/machine-local and never committed):
+- OAuth login for Zomato. Tokens land in the default Hermes profile under
+  `~/.hermes`; they are **not** isolated per Telegram user. The current gateway
+  therefore enforces exactly one numeric `TELEGRAM_ALLOWED_USERS` entry. The
+  gateway wrapper validates only the same canonical `~/.hermes/.env` that Hermes
+  loads; a divergent repo-local `.env` cannot weaken the runtime allowlist. Each
+  teammate authenticates their own single-user instance through the Telegram flow
+  above or with `hermes mcp login zomato`.
 
 Verified 2026-07-12: on a machine whose `~/.hermes/config.yaml` had drifted
 (missing `zomato`, an extra hand-added `swiggy-dineout` from an earlier

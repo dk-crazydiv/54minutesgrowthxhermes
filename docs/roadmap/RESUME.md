@@ -42,9 +42,12 @@ manual version.
 
 ## Where things stand
 
-- This repo is stood up: `setup.sh` ran, all three brains (glm, minimax, codex) answer
-  PONG from `smoke.sh`, and the gateway is running in the background
-  (bot: @swiggy_mcp_buildathon_bot).
+- The gateway is supervised by launchd and the Telegram allowlist contains one user.
+  `scripts/telegram.sh` now manages that service instead of starting a second `nohup`
+  process. Bot: @swiggy_mcp_buildathon_bot.
+- Brain smoke is currently **red**: GLM and MiniMax keys are absent from
+  `~/.hermes/.env`, and Codex returns HTTP 429 usage-limit reached. `smoke.sh` now
+  checks an exact `PONG` and reports all three failures instead of false-green output.
 - The build target is the Zomato Companion Agent (food only) — `docs/idea.md`.
   **Zomato MCP is wired and proven**: OAuth'd, 11 tools, real read-only call returned
   Kartik's saved addresses. Notes in `docs/zomato/`.
@@ -59,14 +62,14 @@ manual version.
   The list is the Now section of BACKLOG.md.
 - **North star: `docs/roadmap/SCORE.md`** — honest Revenue-track self-score (74 right
   now) and the ranked points-per-hour moves. Optimize against it.
-- In flight (subagents, will land on main): a runnable test suite in `tests/` that
-  drives the agent as a mock Telegram user (CLI sessions are separate from Kartik's
-  Telegram thread — tests never touch his context, and NEVER call checkout_cart);
-  a per-user memory store in `users/<id>/` (Kartik's full Zomato history as CSV so
-  history queries stop re-pulling 39 pages); a session-grouped debug dashboard +
-  refreshed mission-control.html.
-- Priyam is building per-Telegram-user Zomato auth separately; the users/ folder
-  naming expects a telegram user id. Pick it up when his push lands (watcher will say).
+- Telegram-first Zomato OAuth is now repo-carried: `scripts/zomato_chat_oauth.py`
+  sends a localhost OAuth link into chat and relays the pasted one-time callback with
+  `relay-latest`; `scripts/zomato_logout.py` deletes credentials and recycles the live
+  gateway connection. The canonical flow is in `docs/hermes/setup.md` and enforced by
+  `config/SOUL.md`. Twenty isolated helper and shell-safety tests pass. A fresh
+  live phone proof is still waiting on the user's Zomato login.
+- This remains single-user safe mode. Tokens and the live MCP client are default-profile
+  scoped; do not open the bot to strangers until they are isolated per Telegram user.
 - Everyone works on main, no branches. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the

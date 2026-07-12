@@ -15,9 +15,10 @@ import argparse
 import json
 import os
 import shutil
-import signal
 import subprocess
 from pathlib import Path
+
+from zomato_runtime_safety import pid_running, terminate_oauth_worker_group
 
 
 def hermes_home() -> Path:
@@ -26,20 +27,21 @@ def hermes_home() -> Path:
 
 def logout(home: Path) -> dict[str, object]:
     chat_state = home / "zomato-chat-oauth" / "state.json"
+    oauth_process_stopped = not chat_state.exists()
     if chat_state.exists():
         try:
             worker_pid = json.loads(chat_state.read_text()).get("worker_pid")
-            if worker_pid:
-                os.kill(int(worker_pid), signal.SIGTERM)
-        except (OSError, ValueError, TypeError, json.JSONDecodeError):
-            pass
+            oauth_process_stopped = not pid_running(worker_pid) or terminate_oauth_worker_group(worker_pid)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError, subprocess.SubprocessError):
+            oauth_process_stopped = False
 
     targets = [
         home / "mcp-tokens" / "zomato.json",
         home / "mcp-tokens" / "zomato.client.json",
         home / "zomato-oauth-broker" / "pending.json",
-        home / "zomato-chat-oauth" / "state.json",
     ]
+    if oauth_process_stopped:
+        targets.append(chat_state)
     removed: list[str] = []
     absent: list[str] = []
     for path in targets:
@@ -49,14 +51,20 @@ def logout(home: Path) -> dict[str, object]:
         else:
             absent.append(str(path))
 
+    token_absent = not (home / "mcp-tokens" / "zomato.json").exists()
+    client_absent = not (home / "mcp-tokens" / "zomato.client.json").exists()
+    pending_absent = not (home / "zomato-oauth-broker" / "pending.json").exists()
+    chat_oauth_absent = not (home / "zomato-chat-oauth" / "state.json").exists()
     return {
-        "ok": True,
+        "ok": token_absent and client_absent and pending_absent and chat_oauth_absent and oauth_process_stopped,
         "removed": removed,
         "already_absent": absent,
         "metadata_kept": str(home / "mcp-tokens" / "zomato.meta.json"),
-        "token_absent": not (home / "mcp-tokens" / "zomato.json").exists(),
-        "client_absent": not (home / "mcp-tokens" / "zomato.client.json").exists(),
-        "pending_absent": not (home / "zomato-oauth-broker" / "pending.json").exists(),
+        "token_absent": token_absent,
+        "client_absent": client_absent,
+        "pending_absent": pending_absent,
+        "chat_oauth_absent": chat_oauth_absent,
+        "oauth_process_stopped": oauth_process_stopped,
     }
 
 
@@ -88,13 +96,18 @@ def main() -> int:
 
     result = logout(hermes_home())
     if args.restart_gateway:
-        result["gateway_restart_scheduled"] = schedule_gateway_restart()
+        restart_scheduled = schedule_gateway_restart()
+        result["gateway_restart_scheduled"] = restart_scheduled
+        result["ok"] = bool(result.get("ok")) and restart_scheduled
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        print("Zomato logged out ✅")
-        print("Cleared the local Zomato OAuth token/client and pending broker state.")
-    return 0
+        if result.get("ok"):
+            print("Zomato logged out ✅")
+            print("Cleared the local Zomato OAuth token/client and pending broker state.")
+        else:
+            print("Zomato logout incomplete; inspect the JSON status and gateway state.")
+    return 0 if result.get("ok") else 1
 
 
 if __name__ == "__main__":

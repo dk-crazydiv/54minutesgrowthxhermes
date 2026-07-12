@@ -46,7 +46,7 @@
 <main>
   <header>
     <h1>Hermes buildathon — mission control</h1>
-    <div class="stamp">July 12 · <b>Zomato Companion Agent, food-only. Landing page live, Zomato wired, whole team on the four Telegram proofs.</b> Humans: Kartik, Jatin, Priyam. AI sessions: Fable. Every line below names its owner.</div>
+    <div class="stamp">July 12 · <b>Zomato Companion Agent, food-only. Telegram OAuth flow is repo-carried; gateway is supervised. Live auth proof and brain smoke are still red.</b> Humans: Kartik, Jatin, Priyam. AI sessions: Fable. Every line below names its owner.</div>
   </header>
 
   <section>
@@ -59,6 +59,18 @@
       <p><code>users/kartik/</code> holds his full Zomato history as <code>history.csv</code> (122 orders, 2022→2026, one-time dump — history questions read the CSV, not the MCP), plus <code>profile.md</code>, <code>preferences.md</code>, <code>notes.md</code>. No addresses or phone numbers stored. Folder naming is ready for Priyam's per-Telegram-user auth flow.</p></div>
     <div class="item done"><strong>Debug dashboard: <code>python3 scripts/debug-dashboard.py</code> → <a href="http://127.0.0.1:8787">127.0.0.1:8787</a>.</strong>
       <p>Sessions view: collapsible per-session threads, session picker, turn/token/tool-call counts, readable tool calls with result previews, warnings/errors from the gateway log. Users view (<code>/users</code>): renders every <code>users/</code> folder — profile, preferences, last 50 history rows. Read-only, localhost, temporary.</p></div>
+    <div class="item done"><strong>Telegram-first Zomato auth flow is in the repo.</strong>
+      <p><code>config/SOUL.md</code> enforces auth preflight. <code>zomato_chat_oauth.py</code> sends the login link and relays the pasted one-time localhost callback without the old 120-second PTY wait. <code>zomato_logout.py</code> clears credentials and recycles the gateway. Twenty isolated helper and shell-safety tests pass.</p></div>
+  </section>
+
+  <section>
+    <h2>Broken or waiting</h2>
+    <div class="item broken"><strong>Brain smoke is red.</strong>
+      <p>GLM and MiniMax credentials are absent from <code>~/.hermes/.env</code>. Codex returns HTTP 429 usage-limit reached. The smoke script now requires an exact PONG and correctly reports all three failures.</p></div>
+    <div class="item wait"><strong>Kartik: complete one fresh Zomato login from Telegram.</strong>
+      <p>Zomato is currently disconnected. Send <code>login zomato</code>, open the link, paste the localhost callback, then prove one read-only order request, logout, and the same request being blocked.</p></div>
+    <div class="item wait"><strong>Multi-user access is not open yet.</strong>
+      <p>The Telegram allowlist has one user and the default Hermes profile owns one Zomato token namespace. Do not invite outsiders until tokens and live MCP clients are isolated per Telegram user.</p></div>
   </section>
 
   <section>
@@ -96,7 +108,7 @@
   <section>
     <h2>The board (docs/roadmap/BACKLOG.md)</h2>
     <div class="tablewrap"><table>
-      <tr><td>Now</td><td>The four Telegram proofs above, in order, watched live on the debug dashboard</td></tr>
+      <tr><td>Now</td><td>Fresh auth lifecycle proof · restore exact-PONG brain smoke · then the four Telegram product proofs above</td></tr>
       <tr><td>Next</td><td>Submit the live URL · 4-minute demo script from the cleanest proofs · ElevenLabs + Wispr Flow power-ups · calendar-aware timing if time allows</td></tr>
       <tr><td>Rules</td><td>Final bill before checkout · Kartik confirms · never retry checkout blind · one restaurant per cart · server's <code>final_amount</code> is authoritative</td></tr>
     </table></div>

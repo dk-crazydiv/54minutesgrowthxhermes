@@ -54,8 +54,9 @@ command -v python3 >/dev/null 2>&1 || die "python3 is required"
 PY_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
 PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
 if [ "$PY_MAJOR" -ne 3 ] || [ "$PY_MINOR" -lt 11 ] || [ "$PY_MINOR" -ge 14 ]; then
-    die "Python 3.11 or 3.12 required (got $(python3 --version 2>&1)); uv will provision one automatically."
+    warn "System $(python3 --version 2>&1) is outside Hermes' supported range; uv will provision Python $PYTHON_VERSION."
 fi
+export UV_PYTHON="$PYTHON_VERSION"
 
 # ---- locate or install uv --------------------------------------------------
 # uv picks its install dir from XDG_BIN_HOME, fallback to ~/.local/bin, with
@@ -196,8 +197,10 @@ if [ -n "$PROJECT_ROOT" ] && [ -f "$PROJECT_ROOT/.env" ]; then
     fi
     ln -sfn "$PROJECT_ROOT/.env" "$HERMES_HOME_DIR/.env"
     chmod 600 "$PROJECT_ROOT/.env"
+elif [ -f "$HERMES_HOME_DIR/.env" ]; then
+    log "No project .env found; keeping existing $HERMES_HOME_DIR/.env"
 elif [ -n "$PROJECT_ROOT" ] && [ -f "$PROJECT_ROOT/.env.example" ]; then
-    log "No project .env found; copying $PROJECT_ROOT/.env.example as a placeholder"
+    log "No project or Hermes .env found; installing $PROJECT_ROOT/.env.example as a placeholder"
     cp "$PROJECT_ROOT/.env.example" "$HERMES_HOME_DIR/.env"
     chmod 600 "$HERMES_HOME_DIR/.env"
 fi

@@ -4,8 +4,8 @@
 # ----------------------------------------------------------------------------
 # For each model endpoint configured in .env (glm, minimax), invoke
 # `hermes -z "<prompt>" --provider <p> --model <m>` and capture whatever the
-# model emits. Both transcripts go to stdout; the script exits 0 if both
-# brains returned something non-empty.
+# model emits. Transcripts go to stdout; a brain passes only when its complete
+# trimmed response is exactly PONG.
 #
 # Required:
 #   - bash setup.sh           (installs hermes + symlinks to ~/.local/bin)
@@ -15,7 +15,7 @@
 # the run finishes in seconds. Use it to confirm keys, wiring, and reachability
 # before exercising the agent loop end-to-end.
 # ============================================================================
-set -euo pipefail
+set -uo pipefail
 
 PROMPT="${SMOKE_PROMPT:-Reply with exactly one word: PONG}"
 GLM_MODEL="${GLM_MODEL:-glm-5}"
@@ -24,15 +24,20 @@ CODEX_MODEL="${CODEX_MODEL:-gpt-5.5}"
 
 cd "$(dirname "$0")/.."
 
+# Prefer a teammate's repo-local .env, but use Hermes' canonical env when this
+# checkout intentionally carries no secrets.
+ENV_FILE=".env"
+[ -f "$ENV_FILE" ] || ENV_FILE="${HERMES_HOME:-$HOME/.hermes}/.env"
+
 # Pull keys from .env without sourcing it (we don't want to leak values into
 # the caller's shell).
 get_env_value() {
     local key="$1"
-    grep -E "^${key}=" .env 2>/dev/null | head -1 | cut -d= -f2- || true
+    grep -E "^${key}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- || true
 }
 
-if [ ! -f .env ]; then
-    echo "ERR: no .env at $(pwd)/.env. Run: cp .env.example .env and fill in keys (see README)." >&2
+if [ ! -f "$ENV_FILE" ]; then
+    echo "ERR: no repo .env and no ${HERMES_HOME:-$HOME/.hermes}/.env. Run setup and add credentials." >&2
     exit 1
 fi
 
@@ -40,17 +45,21 @@ GLM_KEY="$(get_env_value GLM_API_KEY)"
 MINIMAX_KEY="$(get_env_value MINIMAX_API_KEY)"
 
 if [ -z "${GLM_KEY// /}" ]; then
-    echo "ERR: GLM_API_KEY is empty in .env. Copy the key from the opencode auth store into .env (see README)." >&2
-    exit 1
+    echo "WARN: GLM_API_KEY is empty in $ENV_FILE; GLM will be recorded as failed." >&2
 fi
 if [ -z "${MINIMAX_KEY// /}" ]; then
-    echo "ERR: MINIMAX_API_KEY is empty in .env. Copy the key from the opencode auth store into .env (see README)." >&2
-    exit 1
+    echo "WARN: MINIMAX_API_KEY is empty in $ENV_FILE; MiniMax will be recorded as failed." >&2
 fi
 
 command -v hermes >/dev/null 2>&1 || {
     echo "ERR: hermes not on PATH. Run: bash setup.sh" >&2
     exit 1
+}
+
+is_exact_pong() {
+    local normalized
+    normalized="$(printf '%s' "$1" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    [ "$normalized" = "PONG" ]
 }
 
 run_brain() {
@@ -73,8 +82,8 @@ run_brain() {
         rc=$?
     fi
 
-    if [ $rc -ne 0 ] || [ -z "${out// /}" ]; then
-        echo "(no response; rc=$rc, output below)"
+    if [ $rc -ne 0 ] || ! is_exact_pong "$out"; then
+        echo "(expected an exact PONG line; rc=$rc, output below)"
         echo "$out" | sed 's/^/    /'
         return 1
     fi
@@ -97,12 +106,12 @@ run_codex() {
     else
         rc=$?
     fi
-    if [ $rc -ne 0 ] || [ -z "${out// /}" ]; then
+    if [ $rc -ne 0 ] || ! is_exact_pong "$out"; then
         if echo "$out" | grep -q "No Codex credentials"; then
             echo "    (skipped: no Codex credentials. See docs/setup_docs/codex_setup.md)"
             return 2
         fi
-        echo "(no response; rc=$rc, output below)"
+        echo "(expected an exact PONG line; rc=$rc, output below)"
         echo "$out" | sed 's/^/    /'
         return 1
     fi

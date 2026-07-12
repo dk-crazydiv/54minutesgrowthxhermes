@@ -18,15 +18,17 @@ import json
 import os
 import pty
 import re
-import signal
 import sqlite3
 import subprocess
 import sys
 import time
+from contextlib import closing
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import requests
+
+from zomato_runtime_safety import pid_running, terminate_oauth_worker_group, validate_telegram_env
 
 AUTH_URL_RE = re.compile(r"https://mcp-server\.zomato\.com/authorize\?[^\s\x1b]+")
 SERVER_NAME = "zomato"
@@ -52,6 +54,30 @@ def token_path(home: Path) -> Path:
     return home / "mcp-tokens" / f"{SERVER_NAME}.json"
 
 
+def configured_telegram_user(home: Path) -> str:
+    return validate_telegram_env(home / ".env")
+
+
+def latest_telegram_session(home: Path, telegram_user_id: str) -> str:
+    database = home / "state.db"
+    if not database.exists():
+        raise ValueError("Hermes session database not found")
+    with closing(sqlite3.connect(database)) as connection:
+        row = connection.execute(
+            """
+            SELECT id
+            FROM sessions
+            WHERE source = 'telegram' AND user_id = ? AND archived = 0
+            ORDER BY started_at DESC
+            LIMIT 1
+            """,
+            (telegram_user_id,),
+        ).fetchone()
+    if not row or not row[0]:
+        raise ValueError("no active Telegram session found for the allowlisted user")
+    return str(row[0])
+
+
 def atomic_write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
@@ -71,26 +97,15 @@ def read_state(home: Path) -> dict:
         return {}
 
 
-def pid_running(pid: object) -> bool:
-    try:
-        os.kill(int(str(pid)), 0)
-        return True
-    except (OSError, ValueError, TypeError):
-        return False
-
-
 def stop_existing(home: Path) -> None:
     state = read_state(home)
-    pid = state.get("worker_pid")
-    if pid_running(pid):
-        try:
-            os.kill(int(str(pid)), signal.SIGTERM)
-        except OSError:
-            pass
+    worker_pid = state.get("worker_pid")
+    if pid_running(worker_pid) and not terminate_oauth_worker_group(worker_pid):
+        raise ValueError("could not stop the existing OAuth worker process group")
     state_path(home).unlink(missing_ok=True)
 
 
-def worker(home_arg: str) -> int:
+def worker(home_arg: str, telegram_session_id: str, telegram_user_id: str) -> int:
     home = Path(home_arg).expanduser()
     directory = state_dir(home)
     directory.mkdir(parents=True, exist_ok=True)
@@ -111,7 +126,14 @@ def worker(home_arg: str) -> int:
     os.close(slave_fd)
     atomic_write_json(
         state_path(home),
-        {"worker_pid": os.getpid(), "child_pid": child.pid, "status": "starting", "created_at": time.time()},
+        {
+            "worker_pid": os.getpid(),
+            "child_pid": child.pid,
+            "status": "starting",
+            "created_at": time.time(),
+            "telegram_session_id": telegram_session_id,
+            "telegram_user_id": telegram_user_id,
+        },
     )
 
     buffer = ""
@@ -146,6 +168,8 @@ def worker(home_arg: str) -> int:
                             "auth_url": auth_url,
                             "callback_port": callback.port,
                             "oauth_state": oauth_state,
+                            "telegram_session_id": telegram_session_id,
+                            "telegram_user_id": telegram_user_id,
                         },
                     )
                     buffer = buffer[-8192:]
@@ -168,11 +192,21 @@ def worker(home_arg: str) -> int:
 
 
 def start(home: Path, timeout: float = 15.0) -> dict[str, object]:
+    telegram_user_id = configured_telegram_user(home)
     if token_path(home).exists():
-        return {"ok": True, "status": "already_authenticated"}
+        return {"ok": True, "status": "already_authenticated", "telegram_user_id": telegram_user_id}
 
+    telegram_session_id = latest_telegram_session(home, telegram_user_id)
     state = read_state(home)
-    if state.get("status") == "waiting_for_callback" and pid_running(state.get("worker_pid")):
+    same_context = (
+        state.get("telegram_user_id") == telegram_user_id
+        and state.get("telegram_session_id") == telegram_session_id
+    )
+    if (
+        same_context
+        and state.get("status") == "waiting_for_callback"
+        and pid_running(state.get("worker_pid"))
+    ):
         return {
             "ok": True,
             "status": "waiting_for_callback",
@@ -183,7 +217,17 @@ def start(home: Path, timeout: float = 15.0) -> dict[str, object]:
     stop_existing(home)
     state_dir(home).mkdir(parents=True, exist_ok=True)
     subprocess.Popen(
-        [sys.executable, str(Path(__file__).resolve()), "_worker", "--home", str(home)],
+        [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "_worker",
+            "--home",
+            str(home),
+            "--session-id",
+            telegram_session_id,
+            "--telegram-user-id",
+            telegram_user_id,
+        ],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -246,16 +290,26 @@ def latest_callback_from_session(home: Path) -> str:
     database = home / "state.db"
     if not database.exists():
         raise ValueError("Hermes session database not found")
-    with sqlite3.connect(database) as connection:
+    state = read_state(home)
+    telegram_user_id = configured_telegram_user(home)
+    telegram_session_id = str(state.get("telegram_session_id") or "")
+    if state.get("telegram_user_id") != telegram_user_id or not telegram_session_id:
+        raise ValueError("pending OAuth transaction is not bound to the allowlisted Telegram session")
+    with closing(sqlite3.connect(database)) as connection:
         row = connection.execute(
             """
-            SELECT content
+            SELECT messages.content
             FROM messages
-            WHERE role = 'user'
-              AND content LIKE 'http://127.0.0.1:%/callback?%'
-            ORDER BY id DESC
+            JOIN sessions ON sessions.id = messages.session_id
+            WHERE messages.session_id = ?
+              AND sessions.source = 'telegram'
+              AND sessions.user_id = ?
+              AND messages.role = 'user'
+              AND messages.content LIKE 'http://127.0.0.1:%/callback?%'
+            ORDER BY messages.id DESC
             LIMIT 1
-            """
+            """,
+            (telegram_session_id, telegram_user_id),
         ).fetchone()
     if not row or not row[0]:
         raise ValueError("no pasted localhost callback found")
@@ -263,6 +317,7 @@ def latest_callback_from_session(home: Path) -> str:
 
 
 def status(home: Path) -> dict[str, object]:
+    telegram_user_id = configured_telegram_user(home)
     state = read_state(home)
     return {
         "ok": True,
@@ -270,6 +325,8 @@ def status(home: Path) -> dict[str, object]:
         "token_present": token_path(home).exists(),
         "listener_running": pid_running(state.get("worker_pid")),
         "callback_port": state.get("callback_port"),
+        "single_user_safe_mode": True,
+        "telegram_user_id": telegram_user_id,
     }
 
 
@@ -283,10 +340,12 @@ def main() -> int:
     sub.add_parser("status")
     worker_parser = sub.add_parser("_worker")
     worker_parser.add_argument("--home", required=True)
+    worker_parser.add_argument("--session-id", required=True)
+    worker_parser.add_argument("--telegram-user-id", required=True)
     args = parser.parse_args()
 
     if args.command == "_worker":
-        return worker(args.home)
+        return worker(args.home, args.session_id, args.telegram_user_id)
 
     home = hermes_home()
     try:
@@ -301,7 +360,7 @@ def main() -> int:
             result = relay(latest_callback_from_session(home), home)
         else:
             result = status(home)
-    except (ValueError, requests.RequestException) as exc:
+    except (ValueError, sqlite3.Error, requests.RequestException) as exc:
         result = {"ok": False, "status": "error", "message": str(exc)}
     print(json.dumps(result, indent=2))
     return 0 if result.get("ok") else 1

@@ -4,6 +4,31 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — Telegram-first Zomato auth flow made repo-portable
+
+Manager session: Hermes `20260712_112900_b15061`.
+
+- Rebased local main onto 32 newer remote commits before integrating the auth work.
+- Added `scripts/zomato_chat_oauth.py`: chat-generated OAuth link, strict localhost
+  callback validation, binding to the one allowlisted Telegram user and originating
+  session, and one-call `relay-latest` instead of the old PTY submit plus
+  120-second wait. `scripts/zomato_runtime_safety.py` now supplies one duplicate-
+  rejecting dotenv parser and verified process-group teardown to every runtime path.
+  Added `scripts/zomato_logout.py` to clear credentials, terminate the OAuth worker
+  process group, and recycle the live gateway connection so logout is real, not
+  disk-only.
+- Replaced the stale Swiggy/read-only persona with the Zomato runtime contract in
+  `config/SOUL.md`; installed the same file into live Hermes and restarted launchd.
+- Canonical end-to-end flow now lives in `docs/hermes/setup.md`. Twenty isolated
+  helper and shell-safety tests pass; Python and shell syntax checks pass. No test calls `checkout_cart`.
+- `scripts/telegram.sh` now manages the supervised service instead of a second nohup
+  process. `setup.sh` preserves an existing `~/.hermes/.env` when the repo has no
+  secret file.
+- Smoke is honestly red: GLM and MiniMax credentials are absent, and Codex returns
+  HTTP 429. `scripts/smoke.sh` now requires an exact PONG and aggregates all failures.
+- Waiting on a fresh phone proof: Zomato login, one read-only request, logout, then the
+  same request blocked behind a new login link.
+
 ## July 12 — Decision reversed: Zomato is the build target, food-only
 
 Manager session (Jatin's Fable, session `39c8a1a3`). Jatin made the call after the

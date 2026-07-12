@@ -9,6 +9,17 @@ Each one is a real message from Kartik to @swiggy_mcp_buildathon_bot, a real Zom
 MCP call, and a screenshot-worthy reply. Watch it live on the debug dashboard
 (`python3 scripts/debug-dashboard.py` → http://127.0.0.1:8787).
 
+0. **Finish one clean login → request → logout → blocked-request proof.** The repo now
+   carries the Telegram OAuth link/callback relay and logout lifecycle, but Zomato is
+   currently disconnected. Kartik completes the link from Telegram; capture the fast
+   `relay-latest`, one real read-only call, logout, and the next request returning a
+   fresh login link instead of cached data.
+1. **Restore brain smoke.** Add GLM and MiniMax credentials to the canonical Hermes
+   env and wait/reset Codex usage. `scripts/smoke.sh` must show an exact PONG from every
+   enabled brain; 429/error prose is a failure, not a pass.
+
+Then run the four product proofs:
+
 1. **"Show my order history."** Baseline proof the Telegram → Hermes → Zomato path
    works end-to-end. Paginate — history is ~39 pages, never pull it all.
 2. **"Tell me something interesting about my ordering."** Stats/facts mined from
