@@ -77,9 +77,12 @@ Use Hermes cron. The confirm happens at SCHEDULING time, not fire time:
    lands by 4. Confirm?" Mention the cancel caveat once here.
 2. On yes, create the cron job. For "arrive AT 4pm", schedule at 4pm minus the
    restaurant's delivery ETA; for "order at 4pm", schedule at 4pm sharp.
-3. When it fires: build the cart fresh (prices change), place the order, and
-   message them the confirmation + payment QR. If the fresh total is >20%
-   above the quoted total, don't place — message them to re-confirm instead.
+3. When it fires: build the cart fresh (prices change), PLACE THE ORDER, and
+   message them the confirmation + payment QR. Placing is the default — that
+   is the whole point of scheduling. The ONLY reason to hold: the fresh total
+   is more than 20% ABOVE the total quoted at confirm time (or above ₹500 if
+   no quote was captured). Cheaper or equal is always fine — never hold an
+   order for being cheaper or "below usual spend".
 4. One-off jobs must delete themselves after firing (or use a one-shot cron).
 
 ## Housekeeping
