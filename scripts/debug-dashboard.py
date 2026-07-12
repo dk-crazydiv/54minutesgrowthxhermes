@@ -6,9 +6,15 @@ Usage:  python3 scripts/debug-dashboard.py   then open http://127.0.0.1:8787
 Read-only. Localhost only. No auth (do not expose). Stdlib only.
 
 Views:
-  /            sessions grouped as collapsible threads (+ session picker)
-  /?sid=<id>   single session expanded
-  /users       per-user memory store (users/<slug>/: profile, prefs, history)
+  /             sessions grouped as collapsible threads (+ session picker,
+                users summary strip)
+  /?sid=<id>    single session expanded
+  /users        per-user memory store (users/<slug>/: profile, prefs, history)
+  /user/<slug>  everything for one user: memory files, history.csv
+                (last 20, ?all=1 shows all) and their sessions/threads.
+                Attribution: sessions.user_id == telegram id found in
+                users/<slug>/profile.md; sessions with no user_id (CLI test
+                runs) are grouped under the "cli-tests" pseudo-user.
 
 Data sources:
   - ~/.hermes/state.db      (sqlite, ro): sessions (model, token/tool counts) +
@@ -55,17 +61,44 @@ def db():
     con.row_factory = sqlite3.Row
     return con
 
-def fetch_sessions():
+TELEGRAM_ID_RE = re.compile(r"[Tt]elegram user id:?\s*`?(\d{5,})`?")
+CLI_USER = "cli-tests"
+
+def user_map():
+    """slug -> telegram user id, parsed from users/<slug>/profile.md."""
+    m = {}
+    if os.path.isdir(USERS_DIR):
+        for slug in sorted(os.listdir(USERS_DIR)):
+            p = os.path.join(USERS_DIR, slug, "profile.md")
+            if os.path.isfile(p):
+                with open(p, encoding="utf-8", errors="replace") as f:
+                    hit = TELEGRAM_ID_RE.search(f.read())
+                if hit:
+                    m[slug] = hit.group(1)
+    return m
+
+def slug_for_session(s, id_to_slug):
+    """Which user does a session belong to? NULL user_id -> cli-tests."""
+    uid = s["user_id"] or s["chat_id"]
+    if not uid:
+        return CLI_USER
+    return id_to_slug.get(str(uid), f"tg-{uid}")
+
+def fetch_sessions(user_slug=None, limit=SESSION_LIMIT):
+    """Latest sessions; optionally only those attributed to user_slug."""
     con = db()
     try:
-        return con.execute("""
-            SELECT id, model, display_name, started_at, ended_at,
-                   message_count, tool_call_count,
+        rows = con.execute("""
+            SELECT id, source, user_id, chat_id, model, display_name,
+                   started_at, ended_at, message_count, tool_call_count,
                    input_tokens, output_tokens
-            FROM sessions ORDER BY started_at DESC LIMIT ?""",
-            (SESSION_LIMIT,)).fetchall()
+            FROM sessions ORDER BY started_at DESC""").fetchall()
     finally:
         con.close()
+    if user_slug is not None:
+        id_to_slug = {v: k for k, v in user_map().items()}
+        rows = [s for s in rows if slug_for_session(s, id_to_slug) == user_slug]
+    return rows[:limit]
 
 def fetch_messages(sids):
     if not sids:
@@ -147,8 +180,36 @@ def msg_row(r):
     return (f"<tr class='{cls}'><td class='ts'>{ts}</td>"
             f"<td class='role'>{label}</td><td class='body'>{body}</td></tr>")
 
-def render_sessions(sel_sid=None):
-    sessions = fetch_sessions()
+def csv_row_count(slug):
+    p = os.path.join(USERS_DIR, slug, "history.csv")
+    try:
+        with open(p, newline="", encoding="utf-8", errors="replace") as f:
+            return max(0, sum(1 for _ in csv.reader(f)) - 1)
+    except OSError:
+        return 0
+
+def users_strip():
+    """user -> sessions count, last active, csv orders; links to /user/<slug>."""
+    id_to_slug = {v: k for k, v in user_map().items()}
+    stats = {}  # slug -> [count, last_active]
+    for s in fetch_sessions(limit=10_000):
+        slug = slug_for_session(s, id_to_slug)
+        st = stats.setdefault(slug, [0, 0])
+        st[0] += 1
+        st[1] = max(st[1], s["started_at"])
+    for slug in id_to_slug.values():
+        stats.setdefault(slug, [0, 0])
+    cells = []
+    for slug, (n, last) in sorted(stats.items(), key=lambda kv: -kv[1][1]):
+        last_s = time.strftime("%m-%d %H:%M", time.localtime(last)) if last else "never"
+        orders = csv_row_count(slug)
+        cells.append(f"<a class=ucard href='/user/{esc(slug)}'><b>{esc(slug)}</b>"
+                     f" · {n} sessions · last {last_s}"
+                     + (f" · {orders} orders" if orders else "") + "</a>")
+    return "<div class=ustrip>Users: " + " ".join(cells) + "</div>" if cells else ""
+
+def render_sessions(sel_sid=None, user_slug=None):
+    sessions = fetch_sessions(user_slug)
     msgs = fetch_messages([s["id"] for s in sessions])
     picker = ["<select onchange=\"location='/?sid='+this.value\">",
               f"<option value=''>— all sessions ({len(sessions)}) —</option>"]
@@ -166,7 +227,7 @@ def render_sessions(sel_sid=None):
                       f"{' selected' if sid == sel_sid else ''}>{esc(title)}</option>")
         if sel_sid and sid != sel_sid:
             continue
-        is_open = " open" if (sel_sid or s is sessions[0]) else ""
+        is_open = " open" if (sel_sid or (not user_slug and s is sessions[0])) else ""
         blocks.append(
             f"<details class=sess{is_open}><summary><b>{esc(title)}</b> "
             f"<span class=stats>{esc(stats)}</span> "
@@ -175,13 +236,17 @@ def render_sessions(sel_sid=None):
             f"</table></details>")
     picker.append("</select>")
 
+    if user_slug is not None:  # embedded in a per-user page: threads only
+        return "".join(blocks) or "<p class=note>no sessions for this user</p>"
+
     log_html = []
     for p in LOGS:
         for line in tail_log_lines(p):
             cls = "err" if "ERROR" in line or "CRITICAL" in line else "warn"
             log_html.append(f"<div class='{cls}'>{esc(line)}</div>")
 
-    return (f"<div class=bar>Session: {''.join(picker)}"
+    return (users_strip()
+            + f"<div class=bar>Session: {''.join(picker)}"
             + (" <a href='/'>show all</a>" if sel_sid else "") + "</div>"
             + "".join(blocks)
             + f"<h1>gateway/errors log (WARNING+)</h1><div id=logs>{''.join(log_html)}</div>")
@@ -194,7 +259,8 @@ def render_users():
         d = os.path.join(USERS_DIR, slug)
         if not os.path.isdir(d):
             continue
-        parts = [f"<details class=sess open><summary><b>{esc(slug)}</b></summary>"]
+        parts = [f"<details class=sess open><summary><b>{esc(slug)}</b> "
+                 f"<a href='/user/{esc(slug)}'>full view</a></summary>"]
         for name in ("profile.md", "preferences.md", "notes.md"):
             p = os.path.join(d, name)
             if os.path.exists(p):
@@ -216,10 +282,61 @@ def render_users():
         blocks.append("".join(parts))
     return "".join(blocks) or "<p class=note>users/ is empty</p>"
 
+def render_history_csv(slug, show_all):
+    p = os.path.join(USERS_DIR, slug, "history.csv")
+    if not os.path.exists(p):
+        return ""
+    with open(p, newline="", encoding="utf-8", errors="replace") as f:
+        rows = list(csv.reader(f))
+    head, body = rows[:1], rows[1:]
+    shown = body if show_all else body[-20:]
+    toggle = (f"<a href='/user/{esc(slug)}'>show last 20</a>" if show_all
+              else f"<a href='/user/{esc(slug)}?all=1'>show all</a>")
+    out = [f"<h2>history.csv — {len(body)} rows, {len(shown)} shown · {toggle}</h2><table>"]
+    for row in head + shown:
+        tag = "th" if row in head else "td"
+        out.append("<tr>" + "".join(
+            f"<{tag} class=body>{esc(c[:80])}</{tag}>" for c in row) + "</tr>")
+    out.append("</table>")
+    return "".join(out)
+
+def render_user(slug, qs):
+    """Everything for one user: memory files, order history, all their threads."""
+    parts = [f"<h1>user: {esc(slug)}</h1>"]
+    d = os.path.join(USERS_DIR, slug)
+    if os.path.isdir(d):
+        tid = user_map().get(slug)
+        if tid:
+            parts.append(f"<p class=note>telegram id {esc(tid)}</p>")
+        for name in ("profile.md", "preferences.md", "notes.md"):
+            p = os.path.join(d, name)
+            if os.path.exists(p):
+                with open(p, encoding="utf-8", errors="replace") as f:
+                    txt = f.read()[:8000]
+                parts.append(f"<details class=sess open><summary><b>{esc(name)}</b>"
+                             f"</summary><pre>{esc(txt)}</pre></details>")
+        parts.append(render_history_csv(slug, (qs.get("all") or [""])[0] == "1"))
+    elif slug == CLI_USER:
+        parts.append("<p class=note>pseudo-user: sessions with no telegram "
+                     "user id (CLI test runs)</p>")
+    else:
+        parts.append("<p class=note>no users/ folder for this slug</p>")
+    parts.append("<h2>conversation history</h2>")
+    parts.append(render_sessions(user_slug=slug))
+    return "".join(parts)
+
 def render(path, qs):
-    view = "users" if path == "/users" else "sessions"
     sel_sid = (qs.get("sid") or [None])[0]
-    body = render_users() if view == "users" else render_sessions(sel_sid)
+    if path.startswith("/user/"):
+        view = "users"
+        slug = os.path.basename(path[len("/user/"):].strip("/"))
+        body = render_user(slug, qs)
+    elif path == "/users":
+        view = "users"
+        body = render_users()
+    else:
+        view = "sessions"
+        body = render_sessions(sel_sid)
     return f"""<!doctype html><meta charset=utf-8>
 <meta http-equiv=refresh content=3><title>Hermes debug (temp)</title>
 <style>
@@ -239,6 +356,8 @@ def render(path, qs):
  .err{{background:#3a1414}} .warn{{color:#da5}} .body{{word-break:break-word}}
  #logs div{{padding:2px 4px}} small{{color:#666}}
  pre{{white-space:pre-wrap;background:#181818;padding:6px;border-radius:4px}}
+ .ustrip{{margin:8px 0}} .ucard{{display:inline-block;border:1px solid #2a4a5a;
+   border-radius:4px;padding:3px 8px;margin:2px;text-decoration:none}}
 </style>
 <h1>Hermes debug dashboard <span class=note>— TEMPORARY, localhost only, read-only,
 auto-refresh 3s — {time.strftime('%H:%M:%S')}</span>
