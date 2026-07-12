@@ -46,7 +46,7 @@
 <main>
   <header>
     <h1>Hermes buildathon — mission control</h1>
-    <div class="stamp">July 12 · <b>Zomato Companion Agent, food-only. Landing page live, Zomato wired, whole team on the four Telegram proofs.</b></div>
+    <div class="stamp">July 12 · <b>Zomato Companion Agent, food-only. Landing page live, Zomato wired, whole team on the four Telegram proofs.</b> Humans: Kartik, Jatin, Priyam. AI sessions: Fable. Every line below names its owner.</div>
   </header>
 
   <section>
@@ -63,6 +63,7 @@
 
   <section>
     <h2>The one thing: prove these four over Telegram</h2>
+    <div class="item"><strong>Who does what:</strong> <b>Kartik</b> sends each message from Telegram and approves any checkout. <b>Fable (AI)</b> watches the dashboard, fixes whatever the bot fumbles, and sanity-tests via CLI first. Sanity-passed cases get flagged to Kartik to replay.</div>
     <div class="item flight"><strong>1. "Show my order history."</strong>
       <p>Baseline Telegram → Hermes → Zomato proof. Answer from <code>users/kartik/history.csv</code> where possible; paginate the MCP only for anything newer.</p></div>
     <div class="item flight"><strong>2. "Tell me something interesting about my ordering."</strong>
@@ -75,13 +76,13 @@
 
   <section>
     <h2>The grader (docs/roadmap/SCORE.md) — north star</h2>
-    <div class="item flight"><strong>Current: ~74 points</strong> — 24 base (Revenue rubric) + 50 power-ups (Cloudflare, Convex). Realistic ceiling by 5:30: <b>~180–210</b>.</div>
+    <div class="item flight"><strong>Current: ~74 points</strong> — 24 base (Revenue rubric) + 50 power-ups (Cloudflare, Convex). Realistic ceiling by 5:30: <b>~180–210</b>. Owner in bold — humans are Kartik, Jatin, Priyam; "Fable" means the AI sessions.</div>
     <div class="tablewrap"><table>
-      <tr><td>Wispr</td><td>+25 · ~zero effort — Kartik dictates 500+ words today, screenshots stats. Start now.</td></tr>
-      <tr><td>Signups L1→L2</td><td>+20 · ~1h — real outsiders text the bot and get a reply. Needs Priyam's per-user auth so strangers don't see Kartik's data.</td></tr>
-      <tr><td>ElevenLabs</td><td>+25 · ~1h — spoken final-bill voice note before checkout.</td></tr>
-      <tr><td>Linkup</td><td>+25 · ~1–1.5h — live search (weather/context) visibly in the lunch flow. Zomato MCP calls don't count.</td></tr>
-      <tr><td>Dodo</td><td>+25 · ~1.5h — one live completed checkout (e.g. paid early access). Friend payments are L1.</td></tr>
+      <tr><td>Wispr · <b>Jatin</b></td><td>+25 · ~zero effort — dictate 500+ words during the event, screenshot the Wispr stats page. No code. In progress next.</td></tr>
+      <tr><td>Linkup · <b>Jatin</b></td><td>+25 · ~1–1.5h — live search (weather/context) visibly in the lunch flow. Zomato MCP calls don't count. In progress next.</td></tr>
+      <tr><td>Signups L1→L2 · <b>Priyam + Kartik</b></td><td>+20 · Priyam ships per-user Zomato auth (so strangers don't see Kartik's data), then Kartik gets real outsiders texting the bot.</td></tr>
+      <tr><td>ElevenLabs · <b>Fable</b></td><td>+25 · ~1h — spoken final-bill voice note before checkout. Unclaimed by a human; Fable can build it on request.</td></tr>
+      <tr><td>Dodo · <b>unclaimed</b></td><td>+25 · ~1.5h — one live completed checkout (e.g. paid early access). Friend payments are L1. Decide if we want it.</td></tr>
     </table></div>
     <div class="item"><strong>Zero/DQ risks:</strong> gateway down during judging = no score · spoofed/friend numbers zero the parameter · demo video instead of live app = quality L1 · late submission is final.</div>
   </section>
