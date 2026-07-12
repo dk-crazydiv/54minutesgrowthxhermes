@@ -22,7 +22,9 @@ Data sources:
   - ~/.hermes/logs/gateway.log and errors.log: recent WARNING/ERROR lines
   - <repo>/users/<slug>/    profile.md, preferences.md, notes.md, history.csv
 
-Auto-refreshes every 3s. Masks token-looking secrets.
+Auto-refreshes every 3s via JS reload; open/closed accordion state is kept in
+sessionStorage and re-applied after each refresh, and refresh is skipped while
+the user has text selected. Masks token-looking secrets.
 Delete this file after the buildathon.
 """
 import csv
@@ -229,7 +231,7 @@ def render_sessions(sel_sid=None, user_slug=None):
             continue
         is_open = " open" if (sel_sid or (not user_slug and s is sessions[0])) else ""
         blocks.append(
-            f"<details class=sess{is_open}><summary><b>{esc(title)}</b> "
+            f"<details class=sess id='d-{esc(sid)}'{is_open}><summary><b>{esc(title)}</b> "
             f"<span class=stats>{esc(stats)}</span> "
             f"<small>{esc(sid)}</small></summary>"
             f"<table>{''.join(msg_row(r) for r in rows) or '<tr><td class=note>no messages</td></tr>'}"
@@ -259,7 +261,7 @@ def render_users():
         d = os.path.join(USERS_DIR, slug)
         if not os.path.isdir(d):
             continue
-        parts = [f"<details class=sess open><summary><b>{esc(slug)}</b> "
+        parts = [f"<details class=sess id='u-{esc(slug)}' open><summary><b>{esc(slug)}</b> "
                  f"<a href='/user/{esc(slug)}'>full view</a></summary>"]
         for name in ("profile.md", "preferences.md", "notes.md"):
             p = os.path.join(d, name)
@@ -313,7 +315,8 @@ def render_user(slug, qs):
             if os.path.exists(p):
                 with open(p, encoding="utf-8", errors="replace") as f:
                     txt = f.read()[:8000]
-                parts.append(f"<details class=sess open><summary><b>{esc(name)}</b>"
+                parts.append(f"<details class=sess id='f-{esc(slug)}-{esc(name)}' open>"
+                             f"<summary><b>{esc(name)}</b>"
                              f"</summary><pre>{esc(txt)}</pre></details>")
         parts.append(render_history_csv(slug, (qs.get("all") or [""])[0] == "1"))
     elif slug == CLI_USER:
@@ -324,6 +327,35 @@ def render_user(slug, qs):
     parts.append("<h2>conversation history</h2>")
     parts.append(render_sessions(user_slug=slug))
     return "".join(parts)
+
+# Survives the auto-refresh: persist which <details id=…> are open in
+# sessionStorage (per page URL) and re-apply after each reload. Refresh is a
+# JS reload (not <meta refresh>) so we can skip it while text is selected.
+SCRIPT = """<script>
+(function () {
+  var KEY = 'hermes-open:' + location.pathname + location.search;
+  var stored = null;
+  try { stored = JSON.parse(sessionStorage.getItem(KEY)); } catch (e) {}
+  var all = document.querySelectorAll('details[id]');
+  if (stored) {                       // re-apply user's open/closed choices
+    var open = new Set(stored);
+    all.forEach(function (d) { d.open = open.has(d.id); });
+  }
+  function save() {
+    var ids = [];
+    document.querySelectorAll('details[id]').forEach(function (d) {
+      if (d.open) ids.push(d.id);
+    });
+    sessionStorage.setItem(KEY, JSON.stringify(ids));
+  }
+  all.forEach(function (d) { d.addEventListener('toggle', save); });
+  if (!stored) save();                // seed with server defaults
+  setInterval(function () {           // pause refresh while user has text selected
+    if (String(window.getSelection && getSelection() || '').length) return;
+    location.reload();
+  }, 3000);
+})();
+</script>"""
 
 def render(path, qs):
     sel_sid = (qs.get("sid") or [None])[0]
@@ -338,7 +370,7 @@ def render(path, qs):
         view = "sessions"
         body = render_sessions(sel_sid)
     return f"""<!doctype html><meta charset=utf-8>
-<meta http-equiv=refresh content=3><title>Hermes debug (temp)</title>
+<title>Hermes debug (temp)</title>
 <style>
  body{{font:13px/1.4 ui-monospace,monospace;background:#111;color:#ddd;margin:16px}}
  h1{{font-size:15px}} h2{{font-size:13px;color:#9cf;margin:10px 0 4px}}
@@ -363,7 +395,8 @@ def render(path, qs):
 auto-refresh 3s — {time.strftime('%H:%M:%S')}</span>
 &nbsp; <a href='/'{" style='font-weight:bold'" if view == "sessions" else ""}>Sessions</a> ·
 <a href='/users'{" style='font-weight:bold'" if view == "users" else ""}>Users</a></h1>
-{body}"""
+{body}
+{SCRIPT}"""
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
