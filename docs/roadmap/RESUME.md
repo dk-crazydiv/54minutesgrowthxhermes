@@ -41,8 +41,18 @@ a Claude Code session, and ten minutes.
 - This repo is stood up: `setup.sh` ran, all three brains (glm, minimax, codex) answer
   PONG from `smoke.sh`, and the gateway is running in the background
   (bot: @swiggy_mcp_buildathon_bot).
-- The build target is the Swiggy Companion Agent — five flows in `docs/idea.md`.
-  Current work order lives in BACKLOG.md; landing page is in `site/`.
+- The build target is the Zomato Companion Agent (food only) — `docs/idea.md`.
+  **Zomato MCP is wired and proven**: OAuth'd, 11 tools, real read-only call returned
+  Kartik's saved addresses. Notes in `docs/zomato/`.
+- Landing page is live at https://zomato-companion.pages.dev (`site/`), signups stored
+  in Convex (`backend/`, prod deployment cheerful-crow-656). Power-ups earning:
+  Cloudflare + Convex.
+- Debug dashboard: `python3 scripts/debug-dashboard.py` → http://127.0.0.1:8787 —
+  shows Telegram queries, brain used, tool calls, errors, live from Hermes state.db.
+- Fresh chat from Telegram is native: `/new` resets the session, `/compress` compacts.
+  MCP tool results have NO size cap — paginate big pulls (docs/hermes/setup.md).
+- **The whole team is on one thing now: prove the use cases live over Telegram.**
+  The list is the Now section of BACKLOG.md.
 - Everyone works on main, no branches. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the
