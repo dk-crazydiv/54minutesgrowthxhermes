@@ -24,6 +24,10 @@ bash bootstrap/watch_git.sh status|stop|logs
 You need three things this repo can't carry: the `.env` secrets (get them from Kartik),
 a Claude Code session, and ten minutes.
 
+**Shortcut: `./run.sh` does all of it** — setup, codex as default brain, zomato MCP,
+smoke, watcher, gateway — and prints the standard instructions. Steps below are the
+manual version.
+
 1. Clone, then `bash setup.sh`. It vendors Hermes v2026.7.7.2 and wires `~/.hermes`.
 2. Drop the `.env` Kartik gives you in the repo root, run setup again, then
    `bash scripts/smoke.sh`. Both brains must say PONG.
