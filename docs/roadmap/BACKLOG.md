@@ -15,8 +15,7 @@ The product is the Swiggy Companion Agent (`docs/idea.md`). Everything here serv
 
 ## Next
 
-- **Deploy the landing page.** `site/index.html` is built; blocked on `npx wrangler login`
-  (Kartik). Then `npx wrangler pages deploy site --project-name swiggy-companion` and
-  submit the URL at growthx.club/hermes-buildathon/submit.
+- **Submit the live URL.** Landing page is live at https://zomato-companion.pages.dev
+  (Zomato-branded). Kartik submits it at growthx.club/hermes-buildathon/submit.
 - **Calendar timing + stock-watch** — demo as extensions if time allows, not build targets
   until the three flows above run live.
