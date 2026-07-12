@@ -1,0 +1,495 @@
+diff --git a/hermes_constants.py b/hermes_constants.py
+index 29dac85..b2e45a3 100644
+--- a/hermes_constants.py
++++ b/hermes_constants.py
+@@ -43,6 +43,46 @@ def get_hermes_home_override() -> str | None:
+     return str(override)
+ 
+ 
++# ---------------------------------------------------------------------------
++# Per-user credential scope (Hermes per-Telegram-user MCP isolation)
++#
++# This mirrors the HERMES_HOME override channel above but carries a
++# *credential scope* -- an opaque per-user tag (e.g. a Telegram user id)
++# used to select a per-user MCP OAuth session and token file so two users
++# messaging the bot at the same time each transact on their own upstream
++# account (see docs/hermes/per-user-isolation.md). It is deliberately a
++# separate ContextVar: home-override reroutes the *whole* profile home,
++# whereas credential scope only redirects a single scoped MCP server
++# (currently "zomato") while leaving every other server global.
++# ---------------------------------------------------------------------------
++_CREDENTIAL_SCOPE: ContextVar[str | object] = ContextVar(
++    "_CREDENTIAL_SCOPE", default=_UNSET
++)
++
++
++def set_credential_scope(scope: str | None) -> Token:
++    """Set the context-local per-user credential scope; return a reset token.
++
++    In-process, per-task scoping only -- never mutates ``os.environ`` (which
++    is shared across threads). Pass ``None`` to clear.
++    """
++    value: str | object = _UNSET if not scope else str(scope)
++    return _CREDENTIAL_SCOPE.set(value)
++
++
++def reset_credential_scope(token: Token) -> None:
++    """Restore the previous context-local credential scope."""
++    _CREDENTIAL_SCOPE.reset(token)
++
++
++def get_credential_scope() -> str | None:
++    """Return the active context-local credential scope, if any."""
++    scope = _CREDENTIAL_SCOPE.get()
++    if scope is _UNSET or not scope:
++        return None
++    return str(scope)
++
++
+ def _get_platform_default_hermes_home() -> Path:
+     """Return the platform-native default Hermes home path."""
+     if sys.platform == "win32":
+diff --git a/tools/mcp_oauth.py b/tools/mcp_oauth.py
+index eac9d28..0e158e8 100644
+--- a/tools/mcp_oauth.py
++++ b/tools/mcp_oauth.py
+@@ -289,24 +289,49 @@ def _write_json(path: Path, data: dict) -> None:
+ class HermesTokenStorage:
+     """Persist OAuth tokens and client registration to JSON files.
+ 
+-    File layout::
++    File layout (no scope -- unchanged legacy/global layout)::
+ 
+         HERMES_HOME/mcp-tokens/<server_name>.json         -- tokens
+         HERMES_HOME/mcp-tokens/<server_name>.client.json   -- client info
+         HERMES_HOME/mcp-tokens/<server_name>.meta.json     -- oauth server metadata
++
++    File layout (with ``scope`` set -- per-scope isolation, e.g. one
++    Telegram user's Zomato session)::
++
++        HERMES_HOME/mcp-tokens/<server_name>/<scope>.json
++        HERMES_HOME/mcp-tokens/<server_name>/<scope>.client.json
++        HERMES_HOME/mcp-tokens/<server_name>/<scope>.meta.json
++
++    The ``scope=None`` path is byte-for-byte identical to the historical
++    layout so all existing (unscoped) MCP servers are untouched.
+     """
+ 
+-    def __init__(self, server_name: str):
++    def __init__(self, server_name: str, scope: "str | None" = None):
+         self._server_name = _safe_filename(server_name)
++        # ``scope`` is optional. When None the on-disk layout is exactly the
++        # historical flat one (``mcp-tokens/<server>.json``). When set, tokens
++        # live in a per-server subdirectory keyed by the sanitized scope
++        # (``mcp-tokens/<server>/<scope>.json``) so multiple live sessions --
++        # e.g. one per Telegram user -- never share or clobber tokens.
++        self._scope = _safe_filename(scope) if scope else None
++
++    def _base_dir(self) -> Path:
++        base = _get_token_dir()
++        if self._scope is not None:
++            return base / self._server_name
++        return base
++
++    def _stem(self) -> str:
++        return self._scope if self._scope is not None else self._server_name
+ 
+     def _tokens_path(self) -> Path:
+-        return _get_token_dir() / f"{self._server_name}.json"
++        return self._base_dir() / f"{self._stem()}.json"
+ 
+     def _client_info_path(self) -> Path:
+-        return _get_token_dir() / f"{self._server_name}.client.json"
++        return self._base_dir() / f"{self._stem()}.client.json"
+ 
+     def _meta_path(self) -> Path:
+-        return _get_token_dir() / f"{self._server_name}.meta.json"
++        return self._base_dir() / f"{self._stem()}.meta.json"
+ 
+     # -- tokens ------------------------------------------------------------
+ 
+@@ -434,7 +459,7 @@ class HermesTokenStorage:
+         self.remove()
+         if not snapshot:
+             return
+-        token_dir = _get_token_dir()
++        token_dir = self._base_dir()
+         token_dir.mkdir(parents=True, exist_ok=True)
+         for fname, data in snapshot.items():
+             path = token_dir / fname
+diff --git a/tools/mcp_oauth_manager.py b/tools/mcp_oauth_manager.py
+index 8fe1c66..8ddb8f6 100644
+--- a/tools/mcp_oauth_manager.py
++++ b/tools/mcp_oauth_manager.py
+@@ -458,26 +458,46 @@ class MCPOAuthManager:
+ 
+     # -- Provider construction / caching -------------------------------------
+ 
++    @staticmethod
++    def _cache_key(server_name: str, oauth_scope: Optional[str]) -> str:
++        """Cache/token-store key for a (server, scope) pair.
++
++        Unscoped (``oauth_scope is None``) returns ``server_name`` unchanged so
++        every existing server's provider entry and token files are byte-for-byte
++        identical to before per-user isolation existed. A scope produces a
++        distinct key so a second Telegram user gets a *separate* provider and a
++        separate on-disk token store.
++        """
++        if not oauth_scope:
++            return server_name
++        return f"{server_name}\x00{oauth_scope}"
++
+     def get_or_build_provider(
+         self,
+         server_name: str,
+         server_url: str,
+         oauth_config: Optional[dict],
++        oauth_scope: Optional[str] = None,
+     ) -> Optional[Any]:
+         """Return a cached OAuth provider for ``server_name`` or build one.
+ 
+-        Idempotent: repeat calls with the same name return the same instance.
+-        If ``server_url`` changes for a given name, the cached entry is
+-        discarded and a fresh provider is built.
++        Idempotent: repeat calls with the same name (and ``oauth_scope``)
++        return the same instance. If ``server_url`` changes for a given name,
++        the cached entry is discarded and a fresh provider is built.
++
++        ``oauth_scope`` (e.g. a Telegram user id) isolates one user's OAuth
++        session/token store from another's. ``None`` preserves the historical
++        single-shared-account behavior for every non-scoped server.
+ 
+         Returns None if the MCP SDK's OAuth support is unavailable.
+         """
++        cache_key = self._cache_key(server_name, oauth_scope)
+         with self._entries_lock:
+-            entry = self._entries.get(server_name)
++            entry = self._entries.get(cache_key)
+             if entry is not None and entry.server_url != server_url:
+                 logger.info(
+                     "MCP OAuth '%s': URL changed from %s to %s, discarding cache",
+-                    server_name, entry.server_url, server_url,
++                    cache_key, entry.server_url, server_url,
+                 )
+                 entry = None
+ 
+@@ -486,10 +506,12 @@ class MCPOAuthManager:
+                     server_url=server_url,
+                     oauth_config=oauth_config,
+                 )
+-                self._entries[server_name] = entry
++                self._entries[cache_key] = entry
+ 
+             if entry.provider is None:
+-                entry.provider = self._build_provider(server_name, entry)
++                entry.provider = self._build_provider(
++                    server_name, entry, oauth_scope=oauth_scope
++                )
+ 
+             return entry.provider
+ 
+@@ -497,6 +519,7 @@ class MCPOAuthManager:
+         self,
+         server_name: str,
+         entry: _ProviderEntry,
++        oauth_scope: Optional[str] = None,
+     ) -> Optional[Any]:
+         """Build the underlying OAuth provider.
+ 
+@@ -530,7 +553,11 @@ class MCPOAuthManager:
+             return None
+ 
+         cfg = dict(entry.oauth_config or {})
+-        storage = HermesTokenStorage(server_name)
++        # ``oauth_scope`` redirects the on-disk token store to the per-user
++        # scoped path (``mcp-tokens/<server>/<scope>.json``). Unscoped keeps
++        # the flat legacy path. The provider is still labelled with the real
++        # server_name for logging / 401-recovery messages.
++        storage = HermesTokenStorage(server_name, scope=oauth_scope)
+ 
+         if not _is_interactive() and not storage.has_cached_tokens():
+             raise OAuthNonInteractiveError(
+diff --git a/tools/mcp_tool.py b/tools/mcp_tool.py
+index cd999f2..982c46e 100644
+--- a/tools/mcp_tool.py
++++ b/tools/mcp_tool.py
+@@ -1550,6 +1550,12 @@ class MCPServerTask:
+         self._registered_tool_names: list[str] = []
+         self._reconnect_retries: int = 0
+         self._auth_type: str = ""
++        # Per-user OAuth credential scope for isolated MCP sessions (e.g. a
++        # Telegram user id). None for the default shared/global session. When
++        # set, this task's OAuth provider + token store target the scoped path
++        # ``mcp-tokens/<server>/<scope>.json`` (see _SCOPED_MCP_SERVERS and
++        # docs/hermes/per-user-isolation.md).
++        self._oauth_scope: Optional[str] = None
+         self._refresh_lock = asyncio.Lock()
+         # MCP stdio sessions are a single JSON-RPC stream. Some servers emit
+         # list_changed notifications during startup; if the notification
+@@ -2362,8 +2368,14 @@ class MCPServerTask:
+         if self._auth_type == "oauth":
+             try:
+                 from tools.mcp_oauth_manager import get_manager
++                # ``_oauth_scope`` is set for per-user scoped server instances
++                # (currently only "zomato" -- see _SCOPED_MCP_SERVERS). It
++                # redirects this session's OAuth provider + token store to the
++                # per-user path so two Telegram users hold independent live
++                # Zomato sessions. Unscoped servers pass None → unchanged.
+                 _oauth_auth = get_manager().get_or_build_provider(
+                     self.name, url, config.get("oauth"),
++                    oauth_scope=getattr(self, "_oauth_scope", None),
+                 )
+             except Exception as exc:
+                 logger.warning("MCP OAuth setup failed for '%s': %s", self.name, exc)
+@@ -2964,10 +2976,77 @@ class MCPServerTask:
+ # Module-level state
+ # ---------------------------------------------------------------------------
+ 
++# ``_servers`` is keyed by a *registry key* -- either a bare server name for
++# the default global session, or a composite ``(server, scope)`` key produced
++# by ``_server_registry_key`` for a per-user isolated session. Multiple live
++# MCPServerTask sessions (one per user token) therefore coexist without a
++# global token swap. See docs/hermes/per-user-isolation.md (seam 2).
+ _servers: Dict[str, MCPServerTask] = {}
+ _server_connecting: set[str] = set()
+ _server_connect_errors: Dict[str, str] = {}
+ 
++# Servers that participate in per-Telegram-user credential isolation. Only
++# these get a per-scope session; every other MCP server keeps the historical
++# single global session and token file. Deliberately narrow (Zomato only) so
++# the blast radius of this feature is one server.
++_SCOPED_MCP_SERVERS: frozenset = frozenset({"zomato"})
++
++# Sentinel separating server name from scope in a composite registry key.
++# NUL can never appear in a sanitized server/scope name, so it can't collide
++# with a legitimately-named unscoped server.
++_SCOPE_KEY_SEP = "\x00"
++
++
++def _server_registry_key(server_name: str, scope: Optional[str]) -> str:
++    """Return the ``_servers`` dict key for a (server, scope) pair.
++
++    Unscoped (or a server not in ``_SCOPED_MCP_SERVERS``) returns the bare
++    ``server_name`` so existing global sessions are keyed exactly as before.
++    A scope on a scoped server yields ``"<server>\\x00<scope>"``.
++    """
++    if scope and server_name in _SCOPED_MCP_SERVERS:
++        return f"{server_name}{_SCOPE_KEY_SEP}{scope}"
++    return server_name
++
++
++def _active_scope_for(server_name: str) -> Optional[str]:
++    """Return the credential scope that should apply to ``server_name`` now.
++
++    Resolution order (first non-empty wins):
++
++    1. An explicit context-local credential scope set via
++       ``hermes_constants.set_credential_scope`` -- an override channel used by
++       tests and any caller that wants to force a specific scope.
++    2. The current gateway session's Telegram user id
++       (``HERMES_SESSION_USER_ID``). The gateway already binds this per inbound
++       message via ``gateway.session_context.set_session_vars`` and propagates
++       it onto agent/executor threads, so at MCP-tool-call time (which runs on
++       the agent thread) it uniquely identifies the requesting Telegram user.
++
++    Returns None for servers not in ``_SCOPED_MCP_SERVERS`` (they are fully
++    unaffected) and None when no scope is resolvable (falls back to the global
++    shared session -- the historical behavior).
++    """
++    if server_name not in _SCOPED_MCP_SERVERS:
++        return None
++    # 1. Explicit override.
++    try:
++        from hermes_constants import get_credential_scope
++        override = get_credential_scope()
++        if override:
++            return override
++    except Exception:
++        pass
++    # 2. Gateway session user id (the inbound Telegram user).
++    try:
++        from gateway.session_context import get_session_env
++        uid = get_session_env("HERMES_SESSION_USER_ID", "")
++        if uid:
++            return str(uid)
++    except Exception:
++        pass
++    return None
++
+ # Circuit breaker: consecutive error counts per server.  After
+ # _CIRCUIT_BREAKER_THRESHOLD consecutive failures, the handler returns
+ # a "server unreachable" message that tells the model to stop retrying,
+@@ -3581,12 +3660,19 @@ def _ensure_mcp_loop():
+ 
+ 
+ def _wrap_with_home_override(coro: "Coroutine") -> "Coroutine":
+-    """Carry the caller's context-local HERMES_HOME override into ``coro``.
++    """Carry the caller's context-local HERMES_HOME override AND per-user
++    credential scope into ``coro``.
+ 
+-    Returns ``coro`` unchanged when no override is active. Otherwise wraps
+-    it so the override is set inside the coroutine's own (task-local)
++    Returns ``coro`` unchanged when neither is active. Otherwise wraps it so
++    both values are re-established inside the coroutine's own (task-local)
+     context on the MCP loop and reset when it completes — concurrent calls
+     carrying different scopes don't interfere.
++
++    The credential scope is what lets two Telegram users hit the "zomato"
++    MCP server concurrently on their own accounts: the scope is snapshotted
++    on the calling (agent) thread and replayed here so the MCP background
++    loop can select the right per-scope session (see
++    ``_get_connected_server_for_call``).
+     """
+     try:
+         from hermes_constants import (
+@@ -3597,16 +3683,36 @@ def _wrap_with_home_override(coro: "Coroutine") -> "Coroutine":
+ 
+         home_override = get_hermes_home_override()
+     except Exception:
+-        return coro
+-    if not home_override:
++        home_override = None
++
++    try:
++        from hermes_constants import (
++            get_credential_scope,
++            reset_credential_scope,
++            set_credential_scope,
++        )
++
++        cred_scope = get_credential_scope()
++    except Exception:
++        cred_scope = None
++
++    if not home_override and not cred_scope:
+         return coro
+ 
+     async def _scoped():
+-        token = set_hermes_home_override(home_override)
++        home_token = (
++            set_hermes_home_override(home_override) if home_override else None
++        )
++        scope_token = (
++            set_credential_scope(cred_scope) if cred_scope else None
++        )
+         try:
+             return await coro
+         finally:
+-            reset_hermes_home_override(token)
++            if scope_token is not None:
++                reset_credential_scope(scope_token)
++            if home_token is not None:
++                reset_hermes_home_override(home_token)
+ 
+     return _scoped()
+ 
+@@ -3784,18 +3890,25 @@ def _load_mcp_config() -> Dict[str, dict]:
+ # Server connection helper
+ # ---------------------------------------------------------------------------
+ 
+-async def _connect_server(name: str, config: dict) -> MCPServerTask:
++async def _connect_server(
++    name: str, config: dict, oauth_scope: Optional[str] = None
++) -> MCPServerTask:
+     """Create an MCPServerTask, start it, and return when ready.
+ 
+     The server Task keeps the connection alive in the background.
+     Call ``server.shutdown()`` (on the same event loop) to tear it down.
+ 
++    ``oauth_scope`` (e.g. a Telegram user id) makes this a per-user isolated
++    session whose OAuth provider + token store target the scoped path. None
++    yields the historical global session.
++
+     Raises:
+         ValueError: if required config keys are missing.
+         ImportError: if HTTP transport is needed but not available.
+         Exception: on connection or initialization failure.
+     """
+     server = MCPServerTask(name)
++    server._oauth_scope = oauth_scope
+     await server.start(config)
+     return server
+ 
+@@ -3838,14 +3951,78 @@ def _request_lazy_reconnect(server_name: str, server: MCPServerTask) -> bool:
+         return False
+ 
+ 
++def _lazy_connect_scoped_session(
++    server_name: str, scope: str, registry_key: str
++) -> Optional[MCPServerTask]:
++    """Connect (once) a per-scope MCPServerTask for a scoped server.
++
++    Reuses the *global* server's connection config (transport, url, oauth
++    config) and only overrides the OAuth credential scope, so the scoped
++    session authenticates with the per-user token store. The result is cached
++    in ``_servers`` under ``registry_key`` so subsequent calls for the same
++    user reuse the live session. Returns None if no base config is available
++    or the connect fails.
++    """
++    with _lock:
++        base = _servers.get(server_name)
++        already = _servers.get(registry_key)
++    if already is not None:
++        return already
++    base_config = dict(getattr(base, "_config", {}) or {}) if base is not None else {}
++    if not base_config:
++        logger.warning(
++            "MCP server '%s': cannot open scoped session for scope=%s -- "
++            "global server not connected / no base config",
++            server_name, scope,
++        )
++        return None
++    try:
++        server = _run_on_mcp_loop(
++            lambda: _connect_server(server_name, base_config, oauth_scope=scope),
++            timeout=base_config.get("connect_timeout", _DEFAULT_CONNECT_TIMEOUT),
++        )
++    except Exception as exc:
++        logger.warning(
++            "MCP server '%s': scoped session connect failed (scope=%s): %s",
++            server_name, scope, exc,
++        )
++        return None
++    with _lock:
++        # Double-checked: another thread may have connected concurrently.
++        existing = _servers.get(registry_key)
++        if existing is not None:
++            winner = existing
++        else:
++            _servers[registry_key] = server
++            winner = server
++    if winner is not server:
++        # Lost the race -- tear down our redundant session.
++        try:
++            _run_on_mcp_loop(server.shutdown, timeout=10)
++        except Exception:
++            pass
++    return winner
++
++
+ def _get_connected_server_for_call(server_name: str) -> Optional[MCPServerTask]:
+-    """Return a connected server, lazily reconnecting recycled stdio state."""
++    """Return a connected server, lazily reconnecting recycled stdio state.
++
++    Scope-aware: when a per-user credential scope is active for a scoped
++    server (currently only "zomato"), resolve/lazy-connect that user's own
++    session instead of the global one. Non-scoped servers are unaffected.
++    """
++    scope = _active_scope_for(server_name)
++    registry_key = _server_registry_key(server_name, scope)
+     with _lock:
+-        server = _servers.get(server_name)
++        server = _servers.get(registry_key)
++    # Scoped session not yet open for this user → lazily connect it, reusing
++    # the global server's transport/oauth config with the per-user scope.
++    if server is None and registry_key != server_name and scope:
++        server = _lazy_connect_scoped_session(server_name, scope, registry_key)
+     if server is not None and server.session is None and server._is_recycled_stdio():
+-        _request_lazy_reconnect(server_name, server)
++        _request_lazy_reconnect(registry_key, server)
+         with _lock:
+-            server = _servers.get(server_name)
++            server = _servers.get(registry_key)
+     return server
+ 
+ 

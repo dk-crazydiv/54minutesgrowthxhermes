@@ -12,10 +12,12 @@ import re
 # 1) locale: friendly reset banner, no tip line
 p = "vendor/hermes-agent/locales/en.yaml"
 s = open(p).read()
+_welcome = ('"✨ Fresh chat. What are you craving? Try \\"my last order\\", '
+            '\\"something under ₹300\\", or \\"surprise me\\"."')
 s = s.replace('header_default:        "✨ Session reset! Starting fresh."',
-              'header_default:        "✨ Fresh chat. What are we eating?"')
+              'header_default:        ' + _welcome)
 s = s.replace('header_new:            "✨ New session started!"',
-              'header_new:            "✨ Fresh chat. What are we eating?"')
+              'header_new:            ' + _welcome)
 s = re.sub(r'tip:\s+"\\n✦ Tip: \{tip\}"', 'tip:                   ""', s)
 open(p, "w").write(s)
 
@@ -73,5 +75,28 @@ patched = """    filepath.write_bytes(data)
 if anchor in s and "upscale tiny PNGs" not in s:
     s = s.replace(anchor, patched, 1)
     open(p, "w").write(s)
+EOF
+python3 - <<'EOF'
+# 5) hide tool-execution internals from end users: force display.tool_progress
+# off in the runtime config so Telegram never shows "terminal / shell /
+# Searching / Reading" cards — only the final food answer. Idempotent; config
+# lives in ~/.hermes (not vendored), so we enforce it here where run.sh reapplies
+# branding after every setup.
+import os, re
+cfg = os.path.join(os.path.expanduser(os.environ.get("HERMES_HOME", "~/.hermes")), "config.yaml")
+if os.path.exists(cfg):
+    s = open(cfg).read()
+    # match the exact "tool_progress:" key (not tool_progress_prompt/_command/etc.)
+    if re.search(r'(?m)^(\s*)tool_progress:[ \t]*\S+', s):
+        s2 = re.sub(r'(?m)^(\s*)tool_progress:[ \t]*\S+.*$', r'\1tool_progress: off', s)
+    elif re.search(r'(?m)^display:\s*$', s):
+        s2 = re.sub(r'(?m)^(display:\s*)$', r'\1\n  tool_progress: off', s, count=1)
+    else:
+        s2 = s + "\ndisplay:\n  tool_progress: off\n"
+    if s2 != s:
+        open(cfg, "w").write(s2)
+        print("config: display.tool_progress forced off")
+    else:
+        print("config: display.tool_progress already off")
 EOF
 echo "hermes branding patch applied"
