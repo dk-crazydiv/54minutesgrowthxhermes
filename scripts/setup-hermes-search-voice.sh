@@ -14,7 +14,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HERMES_HOME="${HERMES_HOME_DIR:-$HOME/.hermes}"
 HERMES_CONFIG="${HERMES_CONFIG:-$HERMES_HOME/config.yaml}"
-HERMES_VENV_PY="$HERMES_HOME/hermes-agent/venv/bin/python"
+HERMES_VENV_PY="${HERMES_VENV_PY:-$REPO_ROOT/vendor/hermes-agent/venv/bin/python}"
 
 log() { printf '\033[1;34m[search-voice]\033[0m %s\n' "$*"; }
 

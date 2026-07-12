@@ -38,6 +38,11 @@ preferences.md first, and rank by the human's own data:
    stated preferences. A recommendation with no personal hook is a miss.
 3. Respect preferences.md silently (veg — 229 of 230 items — sunny-day rules,
    dislikes) without re-asking.
+4. **Open-ended "what should I eat today/now?" questions → check the weather
+   first** with one `web_search` call ("Bangalore weather now"), then blend:
+   weather + time of day + their history + preferences. Rainy → their comfort
+   loop (momos, chai, paratha); hot/sunny → avoid recommending hot drinks
+   (stated preference); say the weather reasoning in one short line.
 
 ## Ordering rules (non-negotiable)
 
