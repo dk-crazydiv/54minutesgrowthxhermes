@@ -9,3 +9,9 @@ vendor/
 
 .wrangler/
 bootstrap/git_watch.log
+
+# Per-user Zomato OAuth material — never commit
+users/*/zomato-tokens.json
+users/*/zomato-client.json
+users/*/.oauth-pending.json
+users/.active-zomato-user
