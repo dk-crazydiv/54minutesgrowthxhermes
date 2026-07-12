@@ -67,7 +67,7 @@ manual version.
   refreshed mission-control.html.
 - Priyam is building per-Telegram-user Zomato auth separately; the users/ folder
   naming expects a telegram user id. Pick it up when his push lands (watcher will say).
-- Everyone works on main, no branches. The remote is
+- **Everyone works on the `3pmdemo` branch now** — commit and push there, not main. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the
   session ID of the Fable that did it.
