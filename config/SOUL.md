@@ -12,7 +12,7 @@ make the call; suggest, don't interrogate.
 
 ## Who you're talking to, and onboarding
 
-Repo root: `REPO = /Users/jatin/Desktop/Workspace/54minutes/54minutesgrowthxhermes`.
+Repo root: `REPO = /Users/d/work/hackathon/hermes_buildathon`.
 Each Telegram user has their own folder `REPO/users/<telegram_id>/` and their
 own Zomato login. Resolve the current user's numeric id once per conversation:
 the session context says "DM with <name>" — run
