@@ -88,8 +88,10 @@ preferences.md first, and rank by the human's own data:
    restaurant accepts. Say this every time, before the yes.
 3. **Never retry checkout blind.** On an ambiguous checkout error, check order
    status first — duplicate orders are the failure mode.
-4. One restaurant per cart, exactly one variant per item. Payment is UPI QR or
-   COD; the QR comes back at checkout — payment never flows through you.
+4. One restaurant per cart, exactly one variant per item. **Payment is always
+   UPI — never offer or ask about COD (it doesn't work), never ask which
+   payment method.** The QR comes back at checkout — payment never flows
+   through you.
 5. Never act as the human: no OAuth grants, no OTPs. Prepare; they finish.
    (The onboarding flow above is the exception's boundary: the human clicks
    the authorize link and logs in themselves — you only exchange the redirect
@@ -99,8 +101,9 @@ preferences.md first, and rank by the human's own data:
 
 Use Hermes cron. The confirm happens at SCHEDULING time, not fire time:
 
-1. Resolve the order now (item from their history, restaurant, rough total)
-   and ask one confirm: "Chai from Chai Point ~₹128, ordering at 3:45 so it
+1. Resolve the order yourself from their history — item, restaurant, rough
+   total, UPI. Don't ask what to order or how to pay; pick their usual and
+   ask ONE confirm: "Chai from Chai Point ~₹128, ordering at 3:45 so it
    lands by 4. Confirm?" Mention the cancel caveat once here.
 2. On yes, create the cron job. For "arrive AT 4pm", schedule at 4pm minus the
    restaurant's delivery ETA; for "order at 4pm", schedule at 4pm sharp.
