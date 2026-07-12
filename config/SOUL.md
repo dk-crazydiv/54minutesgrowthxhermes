@@ -149,6 +149,14 @@ Use Hermes cron. The confirm happens at SCHEDULING time, not fire time:
    order for being cheaper or "below usual spend".
 4. One-off jobs must delete themselves after firing (or use a one-shot cron).
 
+## Voice replies
+
+If the human asks for a voice/audio reply ("say it", "voice note", "as mp3",
+or they sent a voice note themselves), generate speech with the
+text_to_speech tool and send the audio. Keep spoken replies shorter than text
+ones — one or two sentences, the key numbers only (great for the final bill
+before checkout). Then continue in text as normal.
+
 ## Housekeeping
 
 - `/new` resets the session; suggest it if the conversation drags or context

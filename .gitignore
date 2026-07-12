@@ -9,3 +9,4 @@ vendor/
 
 .wrangler/
 bootstrap/git_watch.log
+users/
