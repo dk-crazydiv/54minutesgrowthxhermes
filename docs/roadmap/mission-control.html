@@ -45,38 +45,40 @@
 </style>
 <main>
   <header>
-    <h1>Hermes buildathon — mission control (Jatin's Fable)</h1>
-    <div class="stamp">Manager Fable · session <code>39c8a1a3</code> · July 12 · <b>Decision reversed on live search data: Zomato is the build target, food-only, four flows</b></div>
+    <h1>Hermes buildathon — mission control</h1>
+    <div class="stamp">July 12 · <b>Zomato Companion Agent, food-only. Landing page live, Zomato wired, whole team on the four Telegram proofs.</b></div>
   </header>
 
   <section>
-    <h2>Waiting on you</h2>
-    <div class="item wait"><strong>MiniMax key is empty in <code>.env</code>.</strong>
-      <p><code>scripts/smoke.sh</code> exits early because <code>MINIMAX_API_KEY</code> is blank in both the repo copy and <code>~/.hermes/.env</code>. Jatin chose to skip for now — GLM alone carries the bot. Paste the key when convenient.</p></div>
-    <div class="item wait"><strong>Send the bot one message from your phone.</strong>
-      <p>Gateway is up and supervised; only a human can confirm the Telegram round-trip.</p></div>
-    <div class="item wait"><strong>Fresh bot token from @BotFather.</strong>
-      <p>The old one leaked in a board comment once. Doesn't block anything, but sooner is better.</p></div>
+    <h2>Live now</h2>
+    <div class="item done"><strong>Landing page: <a href="https://zomato-companion.pages.dev">zomato-companion.pages.dev</a></strong>
+      <p>Served from <code>site/</code> on Cloudflare Pages. Signups land in Convex — prod deployment <code>cheerful-crow-656</code> (<code>backend/</code>) is the source of truth for the signup count.</p></div>
+    <div class="item done"><strong>Zomato MCP is wired and proven on Kartik's real account.</strong>
+      <p>OAuth'd with refresh tokens, 11 tools, lifetime order history pagination works. Limits and gotchas in <code>docs/zomato/mcp-limits.md</code>.</p></div>
+    <div class="item done"><strong>Per-user memory store: <code>users/&lt;telegram-id-or-slug&gt;/</code>.</strong>
+      <p><code>users/kartik/</code> holds his full Zomato history as <code>history.csv</code> (122 orders, 2022→2026, one-time dump — history questions read the CSV, not the MCP), plus <code>profile.md</code>, <code>preferences.md</code>, <code>notes.md</code>. No addresses or phone numbers stored. Folder naming is ready for Priyam's per-Telegram-user auth flow.</p></div>
+    <div class="item done"><strong>Debug dashboard: <code>python3 scripts/debug-dashboard.py</code> → <a href="http://127.0.0.1:8787">127.0.0.1:8787</a>.</strong>
+      <p>Sessions view: collapsible per-session threads, session picker, turn/token/tool-call counts, readable tool calls with result previews, warnings/errors from the gateway log. Users view (<code>/users</code>): renders every <code>users/</code> folder — profile, preferences, last 50 history rows. Read-only, localhost, temporary.</p></div>
   </section>
 
   <section>
-    <h2>In flight</h2>
-    <div class="item done"><strong>Decision (final, Jatin): Zomato is the build target — food-only, four flows.</strong>
-      <p>Live search probes flipped the earlier Swiggy draft: Zomato answers "dish under ₹300, 4.3★+, fast" in one filtered call with orderable IDs; Swiggy has zero filters and no global dish search. Grocery watch is cut with Instamart. Scope now in <code>CLAUDE.md</code> + <code>docs/idea.md</code>; comparison page has the full ledger.</p></div>
-    <div class="item done"><strong>Both MCPs verified live from Claude Code, on real accounts.</strong>
-      <p>Swiggy Food: exactly 5 orders returned (cap confirmed), full reorderMeta present. Swiggy Instamart: connected but zero orders in the 15-day window — demo needs fresh Instamart orders placed beforehand. Zomato: lifetime pagination works. Live findings in <code>docs/swiggy/mcp-setup.md</code>.</p></div>
-    <div class="item done"><strong>Gateway is now a launchd service.</strong>
-      <p>Supervised (auto-restart on crash, start at login) — the old "dies with a reboot" gap is closed. One kill-test still owed as formal proof for the backlog item.</p></div>
-    <div class="item flight"><strong>Next build slice: flows 1+2 (NL search + repeat order) live against Zomato MCP.</strong>
-      <p>Tool shapes are already dumped (<code>docs/zomato/tools/</code>); next is wiring the demo conversation end-to-end through Hermes on Telegram.</p></div>
+    <h2>The one thing: prove these four over Telegram</h2>
+    <div class="item flight"><strong>1. "Show my order history."</strong>
+      <p>Baseline Telegram → Hermes → Zomato proof. Answer from <code>users/kartik/history.csv</code> where possible; paginate the MCP only for anything newer.</p></div>
+    <div class="item flight"><strong>2. "Tell me something interesting about my ordering."</strong>
+      <p>Stats mined from history — most-ordered dish, spend this year, streaks. The wow that backs the landing page's promise.</p></div>
+    <div class="item flight"><strong>3. "Order my most-loved ice cream" — actually place it.</strong>
+      <p>Cart, final bill, Kartik confirms, checkout returns a UPI QR. The agent must warn before confirmation: no cancel/refund tools exist — cancelling means the Zomato app, within ~60 seconds.</p></div>
+    <div class="item flight"><strong>4. "Get me lunch under ₹300 before my next meeting."</strong>
+      <p>NL search + offer math + timing in one flow — the demo-script centrepiece.</p></div>
   </section>
 
   <section>
-    <h2>The board (docs/roadmap/BACKLOG.md + human_backlog.md)</h2>
+    <h2>The board (docs/roadmap/BACKLOG.md)</h2>
     <div class="tablewrap"><table>
-      <tr><td>Now</td><td>Live phone check · rotate bot token · kill-test the launchd gateway · fill MiniMax key</td></tr>
-      <tr><td>Next</td><td>Swiggy tool-shape dump · flows 1+2 prototype · explicit model routing · gateway health watcher</td></tr>
-      <tr><td>Later</td><td>Flows 3–5 (cart optimise, calendar timing, back-in-stock watch) · more providers · real bot jobs</td></tr>
+      <tr><td>Now</td><td>The four Telegram proofs above, in order, watched live on the debug dashboard</td></tr>
+      <tr><td>Next</td><td>Submit the live URL · 4-minute demo script from the cleanest proofs · ElevenLabs + Wispr Flow power-ups · calendar-aware timing if time allows</td></tr>
+      <tr><td>Rules</td><td>Final bill before checkout · Kartik confirms · never retry checkout blind · one restaurant per cart · server's <code>final_amount</code> is authoritative</td></tr>
     </table></div>
   </section>
 
