@@ -1,0 +1,320 @@
+
+================================================================================
+TOOL: get_restaurants_for_keyword
+required: ['address_id', 'keyword']
+DESCRIPTION:
+Main tool to do a general search for restaurants or to search restaurants based on a keyword.
+If no keyword is provided, this tool returns nearby recommended restaurants.
+Only get user's location using `get_saved_addresses_for_user` tool. DO NOT ASK THE USER TO INPUT THEIR LATITUDE AND LONGITUDE DIRECTLY.
+
+Pass the keyword in the query parameter in the following formats:
+- if the user is searching for "give me restaurants serving pizza", pass "pizza" as the keyword
+- if the user is searching for "show me restaurants serving pizza in 5km radius", pass "pizza from restaurants under 5km" as the keyword
+- if the user is searching for "show me restaurants serving pizza under 500 rupees", pass "pizza" as the keyword and apply a filter of max_price 500
+- if the user is searching for "show me restaurants serving pizza with 4 star rating", pass "pizza" as the keyword and apply a filter of min_rating 4
+- if the user is searching for "show me restaurants serving pizza with 4 star rating in 5km radius", pass "pizza under 5km" as the keyword and apply a filter of min_rating 4
+- if the user is searching for "show me restaurants serving pizza within 50 minutes", pass "pizza from restaurants under 50 minutes" as the keyword
+- if the user is searching for "show me restaurants serving pizza under 500 with 4 star rating", pass "pizza" as the keyword and apply a filter of min_rating 4 and max_price 500
+- if the user is searching for "show me restaurants serving pizza under 500 and above 300 with 4.5 star rating", pass "pizza" as the keyword and apply a filter of min_rating 4.5 and min_price 300 and max_price 500
+- if the user is searching for "show me restaurants serving pizza and burger", pass "pizza and burger" as the keyword
+- if the user is searching for "give me pizza from dominos", pass "pizza from dominos" as the keyword
+- if the user is searching for "give me {cuisine_name} serving restaurants", pass "{cuisine_name}" as the keyword, where cuisine_name can be fever food, chinese, italian, etc.
+- if the user is searching for "show me pizza premium restaurants", pass "pizza" as the keyword and set the filter `is_gourmet=True`
+- if the user is searching for "show me pizza gourmet restaurants", pass "pizza" as the keyword and set the filter `is_gourmet=True`
+- if the user is searching for "show me new restaurants for me", pass "new" as the keyword and set the filter `new_for_you_filter=True` (New For You means new restaurants or restaurants not ordered from before)
+- if the user is searching for "show me new pizza restaurants for me", pass "pizza" as the keyword and set the filter `new_for_you_filter=True`
+- if the user is searching for "show me pizza restaurants with great offers near me", pass "pizza" as the keyword and set the filter `offers_tag="default"`
+- if the user is searching for "show me pizza restaurants with good offers near me", pass "pizza" as the keyword and set the filter `offers_tag="default"`
+- if the user is searching for "show me pizza restaurants with DOTD offers", pass "pizza" as the keyword and set the filter `offers_tag="DOTD"`
+- if the user is searching for "show me pizza restaurants with GOLD offers", pass "pizza" as the keyword and set the filter `offers_tag="GOLD"`
+- if the user is searching for "show me pizza restaurants with BOGO offers", pass "pizza" as the keyword and set the filter `offers_tag="BOGO"`
+- if the user is searching for "show me quick delivery restaurants", pass "quick delivery" as the keyword and set the filter `near_and_fast=True` (near_and_fast means quick delivery or fast delivery)
+- if the user is searching for "show me pizza restaurants with quick delivery", pass "pizza" as the keyword and set the filter `near_and_fast=True`
+- If the user intent is to compare the same dish across multiple restaurants, extract the dish name and all restaurant names, make one tool call per restaurant, and in each tool call always include the dish name using the format <dish> from <restaurant_name>, never calling the tool with only the restaurant name.
+
+PARAMS:
+- address_id (string): Address ID for the search query. Only get user's location using `get_saved_addresses_for_user` tool. DO NOT ASK THE USER TO INPUT THEIR LATITUDE AND LONGITUDE DIRECTLY.
+- keyword (?): The keyword to search for. It can be a restaurant name, cuisine, or any other relevant term
+  - (variant) (string)
+  - (variant) (null)
+- page_size (integer, default=10): Number of restaurants to retrieve per page
+- filter (?, default=None)
+  - (variant) (object): Represents a dynamic filter for search results.
+    - min_price (?, default=None): Minimum price filter
+      - (variant) (number)
+      - (variant) (null)
+    - max_price (?, default=None): Maximum price filter
+      - (variant) (number)
+      - (variant) (null)
+    - min_rating (?, default=None): Minimum rating filter (0-5)
+      - (variant) (number, minimum=0, maximum=5)
+      - (variant) (null)
+    - is_gourmet (?, default=None): Filter for gourmet or premium restaurants
+      - (variant) (boolean)
+      - (variant) (null)
+    - new_for_you_filter (?, default=None): Filter for 'New For You' restaurants
+      - (variant) (boolean)
+      - (variant) (null)
+    - offers_tag (?, default=None): Filter for restaurants with offers. Supported values: 'default'-> when exact intent is not specified, 'DOTD' -> Day of the Day offers, 'GOLD' -> Zomato Gold offers, 'BOGO' -> Buy One Get One
+      - (variant) (string)
+      - (variant) (null)
+    - near_and_fast (?, default=None): Filter for quick delivery (near and fast restaurants)
+      - (variant) (boolean)
+      - (variant) (null)
+    - distance (?, default=None): Maximum distance filter in kilometers
+      - (variant) (number)
+      - (variant) (null)
+    - flash_sale (?, default=None): Filter for restaurants in flash sales or 50% off deals
+      - (variant) (boolean)
+      - (variant) (null)
+  - (variant) (null)
+- postback_params (?, default=None)
+  - (variant) (object): Postback parameters for pagination and future queries
+    - processed_chain_ids (array): List of chain IDs that have been processed. When the user's intent is to request more results, pass the previously processed chain IDs to the call. Note that if the query filters have changed, processed chain IDs should be passed empty.
+      - [items] (string)
+    - shown_res_count (integer, default=0): Count of restaurants already shown.
+    - search_id (string, default=): Unique identifier for the search operation.
+    - result_set_key (string, default=): Key for the result set, used for pagination or further queries.
+    - page_index (string, default=): Index of the current page in the search results.
+    - previous_search_params (string, default=): Parameters from the previous search, if any.
+  - (variant) (null)
+
+OUTPUT SCHEMA keys: ['results', 'postback_params', 'relevant_dish_ids', 'relevant_dish_info', 'results_reasoning', 'is_health_critical_query', 'fulfillment_type', 'scheduling_info']
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: get_restaurant_menu_by_categories
+required: ['res_id', 'categories', 'address_id']
+DESCRIPTION:
+Retrieves menu items for a specific restaurant, filtered by categories.
+Use this API to get dishes from a restaurant's menu for multiple categories.
+Call this tool to get detailed information about menu items including add_on details, variant details, prices, tags, descriptions, and reviews.
+
+Pass `menu_filter` to filter menu items based on price, rating, and flash sale availability.
+- if user had initial intent of seeing items less than 300 rupees and greater than 100 rupees, set `menu_filter.min_price` to 100 and `menu_filter.max_price` to 300.
+- if user had initial intent of seeing items in flash sale or 50% off deals, set `menu_filter.flash_sale` to True.
+
+PARAMS:
+- res_id (integer): Restaurant ID of the restaurant, can get id from `get_restaurants_for_keyword`.
+- categories (array): Categories to filter menu items by. Get available categories from `get_menu_items_listing` tool.
+  - [items] (string)
+- address_id (string): Address ID of the user location, necessary to get health details of the items. Can be obtained from `get_saved_addresses_for_user` tool.
+- menu_filter (?, default=None): Filter to apply on menu items
+  - (variant) (object): Represents a menu filter for restaurant menu items.
+    - min_price (?, default=None): Optional minimum price of menu items
+      - (variant) (number)
+      - (variant) (null)
+    - max_price (?, default=None): Optional maximum price of menu items
+      - (variant) (number)
+      - (variant) (null)
+  - (variant) (null)
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: get_menu_items_listing
+required: ['res_id', 'address_id']
+DESCRIPTION:
+Returns a mapping of menu dish names to their categories for a given restaurant.
+Use this API to get the categories of a restaurant's menu first instead of fetching the entire menu to limit data.
+
+Use this tool to:
+- Search for a particular menu dish by name in a restaurant
+- List all available menu dishes for a restaurant
+- Find out if a restaurant has a particular menu dish
+- Determine which category a menu dish belongs to
+- Present a summary of all menu dishes and their categories
+
+For detailed data about a menu dish (tags, reviews, subcategories, etc.), use `get_restaurant_menu_by_category`.
+
+Pass `menu_filter` to filter menu items based on price, rating, and flash sale availability.
+- if user had initial intent of seeing items less than 300 rupees and greater than 100 rupees, set `menu_filter.min_price` to 100 and `menu_filter.max_price` to 300.
+- if user had initial intent of seeing items in flash sale or 50% off deals, set `menu_filter.flash_sale` to True.
+
+PARAMS:
+- res_id (integer): Restaurant ID of the restaurant, can get id from `get_restaurants_for_keyword` tool.
+- address_id (string): Address ID of the user location. Can be obtained from `get_saved_addresses_for_user` tool.
+- menu_filter (?, default=None): Filter to apply on menu items
+  - (variant) (object): Represents a menu filter for restaurant menu items.
+    - min_price (?, default=None): Optional minimum price of menu items
+      - (variant) (number)
+      - (variant) (null)
+    - max_price (?, default=None): Optional maximum price of menu items
+      - (variant) (number)
+      - (variant) (null)
+  - (variant) (null)
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: get_saved_addresses_for_user
+required: None
+DESCRIPTION:
+Retrieves all delivery addresses that the user has previously saved in their Zomato profile.
+User must be authenticated to access their addresses.
+
+PARAMS:
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['fastmcp']
+
+================================================================================
+TOOL: bind_user_number
+required: ['phone_number']
+DESCRIPTION:
+bind_user_number tool is used to bind a user's phone number.
+
+PARAMS:
+- phone_number (string): The phone number to which the user should be binded. This is a mandatory field and should always be asked from user.
+
+OUTPUT SCHEMA keys: ['request_id', 'user', 'status']
+_meta keys: ['fastmcp']
+
+================================================================================
+TOOL: bind_user_number_verify_code
+required: ['auth_packet', 'code']
+DESCRIPTION:
+bind_user_number_verify_code tool is used to verify the otp used for binding a user's phone number.
+
+Returns:
+    bool: True if the verification code was verified successfully, False otherwise.
+    str: An error message if the verification failed.
+
+PARAMS:
+- auth_packet (object): The auth packet that initiated the verification process. `phone_number` field should be retrieved from the user.
+  - request_id (?, default=None): Unique identifier for the OTP request.
+    - (variant) (integer)
+    - (variant) (null)
+  - user (?, default=None): The user that requested the OTP.
+    - (variant) (object): Represents a user in the system.
+      - uuid (?, default=None): Unique identifier for the user.
+        - (variant) (string)
+        - (variant) (null)
+      - phone_number (?, default=None): Phone number of the user.
+        - (variant) (string)
+        - (variant) (null)
+      - is_zoman (boolean, default=False): Indicates if the user is a Zoman.
+      - email (?, default=None): Email address of the user.
+        - (variant) (string)
+        - (variant) (null)
+      - name (?, default=None): Name of the user.
+        - (variant) (string)
+        - (variant) (null)
+    - (variant) (null)
+  - status (integer, enum=[1, 2, 3]): Status of the OTP request.
+- code (string): The verification code that the user has provided.
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['fastmcp']
+
+================================================================================
+TOOL: create_cart
+required: ['res_id', 'items', 'address_id', 'payment_type']
+DESCRIPTION:
+Always ask the user for the payment method. DO NOT SELECT ANY DEFAULT ON YOUR OWN.
+Use this to create a cart for a user with the given items.
+The menu items cannot be from multiple restaurants.
+The provided menu items must only have a single variant selected,
+if multiple variants are available, the user must select one variant for each item.
+Always return the cart amount as well as the items in the cart as a summary after successful creation.
+
+Note for downstream consumers (including LLMs):
+    Always trust the `total_amount` field returned in the Cart object.
+    Do not attempt to recalculate the total from the item prices, as the backend may apply offers, discounts, or other adjustments.
+IMPORTANT: The final cart bill details should always be shown to the user before proceeding with checkout.
+
+PARAMS:
+- res_id (integer): Restaurant ID for which the cart is being created.
+- items (array): List of items to be added to the cart.
+  - [items] (object): Represents an item entry for creating a cart. This is a highly simplified version of CartItem
+that is used to simplify the data that needs to be sent by an LLM to create cart.
+    - variant_id (string): The unique variant id of the item starting with 'v_'
+    - quantity (integer): Quantity of the item to be added to the cart.
+    - add_ons (?, default=None): List of add-ons added to the item.
+      - (variant) (array)
+        - [items] (object): Represents an add-on entry for a cart item entry.
+          - id (string): Unique identifier for the add-on. Starts with 'ctl_'
+          - quantity (integer): Quantity of the add-on to be added to the cart item.
+      - (variant) (null)
+- address_id (string): Address ID of the user location.
+- payment_type (string, enum=['upi', 'cash_on_delivery']): Payment method type for the cart. Always ask the user for the payment method. DO NOT SELECT ANY DEFAULT ON YOUR OWN.
+- promo_code (?, default=None): Promo code name to be applied to the cart, if available.
+  - (variant) (string)
+  - (variant) (null)
+- delivery_instruction (?, default=None): Optional delivery instruction or note for the delivery partner (e.g., 'Leave at door', 'Call on arrival').
+  - (variant) (string)
+  - (variant) (null)
+
+OUTPUT SCHEMA keys: ['cart', 'success', 'message']
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: checkout_cart
+required: ['cart_id']
+DESCRIPTION:
+Used to checkout a cart and place an order.
+The cart must be created using the `create_cart` tool.
+Always ask the user for confirmation before proceeding with the checkout.
+
+Returns:
+    str: A message indicating the status of the checkout process.
+    Image: A QR code for payment if the checkout was successful.
+
+PARAMS:
+- cart_id (string): Cart ID to checkout
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: get_order_history
+required: ['address_id']
+DESCRIPTION:
+This api is responsible for returning a user's order history in a location. It also supports pagination and searching order history on basis of a search query.
+Do not ask the user for pagination or entering a search query on this API  unless the user explicitly asks for it.
+Returns:
+    OrderHistory: A list of orders that the user has placed.
+    This also contains postback parameters and a has more flag that can be used to fetch more results.
+    postback_params and has_more in the response will always be passed to the next request if user is asking for more results.
+    this will either return OrderHistory or an error message if the location cannot be resolved.
+
+PARAMS:
+- address_id (string): The address ID to retrieve order history for.
+- search_query (string, default=): Optional search query to filter order history. When user wants to filter order history by restaurant name or dish name, pass the restaurant name or dish name here.
+- request_type (string, default=initial): The type of request being made, e.g., 'initial' or 'load_more'.
+- has_more (boolean, default=False): Indicates if there are more results to fetch.
+- postback_params (string, default=): Additional parameters for the request.
+- start_date (string, default=): Optional start date for filtering orders (format: YYYY-MM-DD).
+- end_date (string, default=): Optional end date for filtering orders (format: YYYY-MM-DD).
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['ui', 'fastmcp']
+
+================================================================================
+TOOL: get_order_tracking_info
+required: None
+DESCRIPTION:
+Tool to retrieve a list of active orders that the user has placed with their current statuses.
+If rider info is not present in response then it means rider is not assigned yet.
+
+PARAMS:
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['fastmcp']
+
+================================================================================
+TOOL: get_cart_offers
+required: ['cart_id', 'address_id']
+DESCRIPTION:
+Retrieves a list of available as well as applicable promos
+on a cart.
+
+Returns:
+    list[Promo] | str: A list of applicable promos or an error message.
+
+PARAMS:
+- cart_id (string): The cart id of the cart for which the offers need to be fetched.
+- address_id (string): The address id of the delivery address.
+
+OUTPUT SCHEMA keys: ['result']
+_meta keys: ['fastmcp']
