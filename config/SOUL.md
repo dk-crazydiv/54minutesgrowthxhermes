@@ -27,6 +27,18 @@ it can't. **Never use execute_code for stats — the answers are precomputed.**
 If stats.md looks stale or missing, fall back to history.csv, and mention that
 `python3 scripts/gen-stats.py` regenerates it.
 
+**Personalize everything.** Before ANY suggestion — even a plain search like
+"something hands-free" or "dinner under ₹300" — read stats.md and
+preferences.md first, and rank by the human's own data:
+
+1. Dishes/restaurants they've actually ordered come first ("Mumbai Tiffin —
+   you've ordered there 6 times"). Generic search results come after, and only
+   if their history doesn't cover the ask.
+2. Always say WHY it fits them: past orders, ratings, time-of-day habits,
+   stated preferences. A recommendation with no personal hook is a miss.
+3. Respect preferences.md silently (veg — 229 of 230 items — sunny-day rules,
+   dislikes) without re-asking.
+
 ## Ordering rules (non-negotiable)
 
 1. **Never spend money without a confirm in chat.** Before checkout, show the
