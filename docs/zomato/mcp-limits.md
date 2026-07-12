@@ -80,6 +80,7 @@ Zomato publishes no limits doc — everything below is empirically measured (12 
 
 - **Pagination bug**: echoing `postback_params` verbatim fails — the FastMCP layer auto-parses JSON-looking strings into dicts, then Pydantic rejects ("expected string, got dict"). Fix: **double-encode** (`json.dumps(postback_params)`) so one parse still yields a string. Applies to both history and search pagination.
 - History `request_type` must be `"initial"` then `"load_more"` with `has_more: true` echoed.
+- History response nests under `order_history`: orders live at `order_history.order_history_items`, next to `has_more` and `postback_params` (verified 12 Jul on Kartik's account: 122 orders / 7 pages — page counts vary by account; full dump in `users/kartik/history.csv`).
 - Order dates come without a year (`"11 Jul, 2:45PM"`); the pagination cursor carries `last_created_timestamp.seconds` (epoch) — use it or date windows to assign years.
 - Search results lazily omit heavy fields (`variants: "NOT_RETRIEVED"`, `all_addons_data: "NOT_RETRIEVED"`) — fetch the menu tools for full detail.
 - Tool IDs vocabulary: restaurants `res_id` (int) / `chain_id`; variants `v_…`; add-ons `ctl_…`; carts `cart_id`.
