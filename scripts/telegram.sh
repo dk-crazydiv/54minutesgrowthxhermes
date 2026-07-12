@@ -23,6 +23,9 @@ preflight() {
     [ -f "$ENV_FILE" ] || die "no canonical $ENV_FILE. Run setup and add Telegram credentials."
     python3 scripts/zomato_runtime_safety.py validate-telegram-env --env "$ENV_FILE" >/dev/null \
         || die "unsafe Telegram environment in $ENV_FILE"
+    if grep -qiE '^[[:space:]]*TELEGRAM_ALLOW_ALL_USERS=[[:space:]]*"?[[:space:]]*(true|1|yes|on)\b' "$ENV_FILE"; then
+        warn "OPEN MODE: TELEGRAM_ALLOW_ALL_USERS is on — EVERY Telegram user shares the one Zomato account (data + payment). Turn this off once per-user isolation lands."
+    fi
 }
 
 case "${1:-status}" in

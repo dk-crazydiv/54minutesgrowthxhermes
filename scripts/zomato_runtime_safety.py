@@ -64,10 +64,18 @@ def validate_telegram_env(path: Path) -> str:
         raise ValueError("TELEGRAM_BOT_TOKEN is empty")
     raw_users = values.get("TELEGRAM_ALLOWED_USERS", "")
     users = [value.strip() for value in raw_users.replace(" ", ",").split(",") if value.strip()]
+    allow_all = values.get("TELEGRAM_ALLOW_ALL_USERS", "").strip().lower() in TRUTHY
+    if allow_all:
+        # OPEN MODE — explicitly opted into ALL Telegram users. This is UNSAFE
+        # while the Zomato MCP uses a single shared token: every user shares that
+        # one Zomato account (data + payment) until per-user isolation lands.
+        # Permitted deliberately; return the owner id (first numeric allowlist
+        # entry) for OAuth session binding, or "*" when no owner is pinned. Only
+        # an explicit truthy value opens the door — a typo never silently does.
+        owner = next((user for user in users if user.isdigit()), "")
+        return owner or "*"
     if len(users) != 1 or not users[0].isdigit():
         raise ValueError("single-user Zomato mode requires exactly one numeric TELEGRAM_ALLOWED_USERS entry")
-    if values.get("TELEGRAM_ALLOW_ALL_USERS", "").strip().lower() in TRUTHY:
-        raise ValueError("TELEGRAM_ALLOW_ALL_USERS is enabled")
     return users[0]
 
 

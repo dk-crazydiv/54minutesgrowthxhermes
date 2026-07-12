@@ -410,7 +410,11 @@ class ShellSafetyTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("exactly one numeric", result.stderr)
 
-    def test_telegram_preflight_rejects_quoted_space_padded_allow_all(self):
+    def test_telegram_preflight_accepts_explicit_allow_all_open_mode(self):
+        # OPEN MODE: an explicit truthy TELEGRAM_ALLOW_ALL_USERS (even quoted /
+        # space-padded via the dotenv parser) is a deliberate opt-in and now
+        # passes preflight, with a loud operator warning. A typo/non-truthy
+        # value still never opens the door (covered by the validator).
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             home = root / "home"
@@ -433,8 +437,8 @@ class ShellSafetyTests(unittest.TestCase):
                 capture_output=True,
                 timeout=10,
             )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("ALLOW_ALL_USERS is enabled", result.stderr)
+            self.assertEqual(result.returncode, 0)
+            self.assertIn("OPEN MODE", result.stderr)
 
     def test_telegram_preflight_ignores_divergent_repo_env(self):
         with tempfile.TemporaryDirectory() as directory:
