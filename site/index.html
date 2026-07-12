@@ -170,7 +170,7 @@
 <main>
   <nav class="top up d1">
     <div class="mark">zomato<span>&nbsp;companion</span></div>
-    <a href="https://t.me/swiggy_mcp_buildathon_bot">Open the bot ↗</a>
+    <span style="color:var(--muted);font-size:.9rem">Live today · 4 PM</span>
   </nav>
 
   <header class="hero">
@@ -183,7 +183,10 @@
       <button type="submit">Get early access</button>
     </form>
     <p class="form-note up d5" id="form-note"><span id="count-line"></span></p>
-    <p class="tg up d5">Or skip the line — <a href="https://t.me/swiggy_mcp_buildathon_bot">message the bot now</a>.</p>
+    <p class="tg up d5">No spam — one message when the doors open. First 100 get day-one access.</p>
+    <p class="up d5" style="margin-top:1.6rem;color:var(--muted);font-size:.88rem;display:flex;gap:1.4rem;justify-content:center;flex-wrap:wrap">
+      <span>💬 Lives in Telegram</span><span>📲 Nothing to install</span><span>🆓 Free in beta</span>
+    </p>
   </header>
 
   <div class="chat reveal" id="chat" aria-label="Example conversation">
@@ -273,7 +276,7 @@
         note.textContent = "That email didn't look right — try again?";
       }
     } catch {
-      note.textContent = "Couldn't reach the server — try the bot link instead.";
+      note.textContent = "Couldn't reach the server — give it a second and try again.";
     }
   });
 </script>
