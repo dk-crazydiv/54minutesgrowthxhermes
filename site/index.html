@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swiggy Companion Agent</title>
+<meta name="description" content="Order from Swiggy without navigating Swiggy. A Hermes-powered Telegram agent for Swiggy Food and Instamart.">
+<style>
+  :root {
+    --bg: #fffdf9;
+    --text: #1d1a16;
+    --muted: #6b645a;
+    --accent: #f5691b;
+    --accent-text: #ffffff;
+    --card: #f6f1e9;
+    --border: #e6ddd0;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16130f;
+      --text: #f0eae1;
+      --muted: #a39a8c;
+      --accent: #ff7a2f;
+      --card: #211d17;
+      --border: #362f26;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 4rem 1.25rem 5rem; }
+  h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.15; letter-spacing: -0.02em; }
+  .tagline { color: var(--muted); font-size: 1.2rem; margin-top: 0.75rem; }
+  .cta {
+    display: inline-block;
+    margin-top: 1.75rem;
+    background: var(--accent);
+    color: var(--accent-text);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.85rem 1.5rem;
+    border-radius: 10px;
+  }
+  .cta:hover { filter: brightness(1.08); }
+  .cta-note { display: block; margin-top: 0.6rem; color: var(--muted); font-size: 0.9rem; }
+  section { margin-top: 3.5rem; }
+  h2 { font-size: 1.4rem; margin-bottom: 1rem; letter-spacing: -0.01em; }
+  p + p { margin-top: 0.8rem; }
+  .flows { display: grid; gap: 0.9rem; margin-top: 1.25rem; }
+  .flow {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .flow strong { display: block; margin-bottom: 0.2rem; }
+  .flow em { color: var(--muted); font-style: normal; font-size: 0.95rem; }
+  .chat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    margin-top: 1.25rem;
+    font-size: 0.97rem;
+    overflow-x: auto;
+  }
+  .chat p { margin: 0 0 0.7rem; }
+  .chat p:last-child { margin-bottom: 0; }
+  .chat .who { font-weight: 700; }
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+  ul { padding-left: 1.2rem; margin-top: 0.75rem; }
+  li + li { margin-top: 0.35rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Swiggy Companion Agent</h1>
+    <p class="tagline">Order from Swiggy without navigating Swiggy. A Hermes agent on Telegram that searches, repeats, optimises, places and tracks your Food and Instamart orders — you just chat.</p>
+    <a class="cta" href="https://t.me/PLACEHOLDER_BOT">Message the bot on Telegram</a>
+    <span class="cta-note">Open the link, say hi, tell it what you're hungry for.</span>
+  </header>
+
+  <section>
+    <h2>Why</h2>
+    <p>Ordering food is nine steps: open the app, search, pick a restaurant, check delivery time, compare prices, fill the cart, hunt for coupons, check out, track. The agent turns that into one or two messages. The value isn't clever prediction — it's fewer clicks between you and a placed order.</p>
+    <p>You always give the final yes. The agent prepares carts; it never checks out on its own.</p>
+  </section>
+
+  <section>
+    <h2>The five flows</h2>
+    <div class="flows">
+      <div class="flow">
+        <strong>1. Natural-language search</strong>
+        <em>"Find a vegetarian dinner under ₹350." No filters, no scrolling — describe what you want and pick from real options.</em>
+      </div>
+      <div class="flow">
+        <strong>2. Repeat a previous order</strong>
+        <em>"Repeat yesterday's lunch." The agent reads your order history and rebuilds the cart in one message.</em>
+      </div>
+      <div class="flow">
+        <strong>3. Cart optimise</strong>
+        <em>"You need ₹64 more for this coupon — but adding ₹90 only saves ₹50, so skip it." Coupon thresholds, minimum order value, free delivery, your budget.</em>
+      </div>
+      <div class="flow">
+        <strong>4. Calendar-aware timing</strong>
+        <em>"Get lunch before my 1 PM meeting." The agent checks your calendar and finds food that lands before you're busy.</em>
+      </div>
+      <div class="flow">
+        <strong>5. Back-in-stock watch</strong>
+        <em>"Tell me when this is back." The agent polls an unavailable Instamart product and pings you with a ready cart when it returns.</em>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What it looks like</h2>
+    <div class="chat">
+      <p><span class="who">You:</span> Get me lunch before my 1 PM meeting. Keep it under ₹300.</p>
+      <p><span class="who">Agent:</span> You have a meeting from 1 to 2. Three options that arrive before 12:45: South Indian meal ₹245, rice bowl ₹279, veg thali ₹290. Which one?</p>
+      <p><span class="who">You:</span> Rice bowl.</p>
+      <p><span class="who">Agent:</span> Added. Total ₹279. A coupon needs ₹349, but adding an item costs more than it saves. Proceed with ₹279?</p>
+      <p><span class="who">You:</span> Yes.</p>
+      <p><span class="who">Agent:</span> Ordered. I'll track it here and tell you when it's close.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p>You → Hermes companion agent on Telegram → Swiggy MCP → Food and Instamart. Google Calendar plugs in for timing. Back-in-stock is scheduled polling, since there's no webhook.</p>
+    <ul>
+      <li>You approve every order before checkout. Always.</li>
+      <li>Prices get re-verified at cart confirmation — no stale search results.</li>
+      <li>Checkout never retries blindly, so no duplicate orders.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Built for the GrowthX × Hermes buildathon. Hermes agent + Swiggy MCP.</p>
+  </footer>
+</main>
+</body>
+</html>
