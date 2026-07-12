@@ -4,6 +4,24 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — Hermes MCP wiring made repo-portable; MCP claims re-verified live
+
+Manager session (Jatin's Fable, session `39c8a1a3`). Commit `d48e34a`.
+
+- `setup.sh` now runs `scripts/setup-hermes-mcp.sh`, so a fresh clone gets the
+  Swiggy/Zomato `mcp_servers` block in `~/.hermes/config.yaml` with no manual step.
+  Before this, the script existed but nothing called it — a teammate's clone came up
+  with zero MCP servers. Verified idempotent and clean-room by a subagent. Teammates
+  still do their own OAuth/OTP logins; the running gateway needs `/reload-mcp` to
+  pick up the newly added zomato entry.
+- Three verification subagents ran live probes on real accounts: Swiggy Food's
+  5-order cap confirmed twice (no pagination, extra params silently ignored,
+  account-wide); Zomato lifetime history confirmed to the account's first 2017 order.
+  One doc claim corrected: Swiggy order details have no fee breakdown — fees only
+  exist on a live cart. Findings written into `docs/swiggy/` and `docs/zomato/`.
+- Detailed limits-doc updates carry personal order data and are held back from the
+  public remote pending Jatin's call on exposure.
+
 ## July 12 — Swiggy chosen as build target; Zomato demoted to research-only
 
 Manager session (Jatin's Fable, session `39c8a1a3-a3f3-45a9-9daf-6c794b5079ce`).
