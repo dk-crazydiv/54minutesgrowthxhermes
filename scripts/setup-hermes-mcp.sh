@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Registers the Swiggy (food + instamart) and Zomato MCP servers in Hermes Agent's
-# config (~/.hermes/config.yaml). Idempotent: skips servers already configured.
-# Endpoints per docs/swiggy/mcp-setup.md and docs/zomato/mcp-setup.md.
+# Registers the Zomato MCP server in Hermes Agent's config (~/.hermes/config.yaml).
+# Idempotent: skips servers already configured.
+# Endpoint per docs/zomato/mcp-setup.md.
+# Swiggy wiring removed 12 Jul 2026 after the platform decision (docs/idea.md):
+# Zomato is the build target; docs/swiggy/ stays as reference research.
 set -euo pipefail
 
 CONFIG="${HERMES_CONFIG:-$HOME/.hermes/config.yaml}"
 
 SERVERS=(
-  "swiggy-food|https://mcp.swiggy.com/food"
-  "swiggy-instamart|https://mcp.swiggy.com/im"
   "zomato|https://mcp-server.zomato.com/mcp"
 )
 
@@ -39,7 +39,7 @@ done
 echo
 echo "Done. Next:"
 echo "  1. Run: hermes chat"
-echo "  2. Hermes prints an authorize URL per server (Swiggy: phone+OTP, Zomato: OAuth) — complete each in the browser."
+echo "  2. Hermes prints an authorize URL for Zomato (OAuth) — complete it in the browser."
 echo "  3. If Hermes was already running, use /reload-mcp inside the session."
 
 if ! command -v hermes >/dev/null 2>&1; then

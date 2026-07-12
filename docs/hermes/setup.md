@@ -1,4 +1,8 @@
-# Hermes Agent setup (Swiggy + Zomato MCP)
+# Hermes Agent setup (Zomato MCP)
+
+> Swiggy MCP wiring (swiggy-food, swiggy-instamart) was removed 12 Jul after the
+> platform decision (`docs/idea.md`): Zomato is the build target, food-only.
+> Swiggy research stays in `docs/swiggy/` as reference.
 
 Hermes = the [Nous Research Hermes Agent](https://hermes-agent.nousresearch.com/docs/).
 It is MCP-native: it reads MCP servers from `~/.hermes/config.yaml` under the
@@ -23,17 +27,11 @@ reinstall):
 ./scripts/setup-hermes-mcp.sh
 ```
 
-Idempotently adds three OAuth HTTP servers to `~/.hermes/config.yaml`
+Idempotently adds one OAuth HTTP server to `~/.hermes/config.yaml`
 (override path with `HERMES_CONFIG=...`):
 
 ```yaml
 mcp_servers:
-  swiggy-food:
-    url: "https://mcp.swiggy.com/food"
-    auth: oauth
-  swiggy-instamart:
-    url: "https://mcp.swiggy.com/im"
-    auth: oauth
   zomato:
     url: "https://mcp-server.zomato.com/mcp"
     auth: oauth
@@ -45,10 +43,9 @@ mcp_servers:
 hermes chat
 ```
 
-- On connect, Hermes prints an authorize URL per server, opens the browser, and
-  waits for the OAuth callback on a local loopback port.
-  Swiggy auth is phone + OTP; Zomato is OAuth (redirect URIs must be whitelisted —
-  see `docs/zomato/mcp-setup.md`).
+- On connect, Hermes prints an authorize URL for Zomato, opens the browser, and
+  waits for the OAuth callback on a local loopback port (redirect URIs must be
+  whitelisted — see `docs/zomato/mcp-setup.md`).
 - After editing the config in a running session, use `/reload-mcp`.
 
 ## Verified live (12 Jul, Jatin's machine)
@@ -75,10 +72,10 @@ Not repo-carried, by design (auth is per-user, never committed):
 - OAuth/OTP login for each server. Tokens land in Hermes's own auth store
   under `~/.hermes` (per-user, per-machine) — nothing to copy from a
   teammate's setup. Each person authenticates themselves the first time by
-  running `hermes chat` and completing the printed authorize URL(s): Swiggy
-  is phone + OTP, Zomato is OAuth (redirect URI must be pre-whitelisted by
-  Zomato — see `docs/zomato/mcp-setup.md`). If Hermes is already running,
-  reload with `/reload-mcp` instead of restarting.
+  running `hermes chat` and completing the printed authorize URL: Zomato is
+  OAuth (redirect URI must be pre-whitelisted by Zomato — see
+  `docs/zomato/mcp-setup.md`). If Hermes is already running, reload with
+  `/reload-mcp` instead of restarting.
 
 Verified 2026-07-12: on a machine whose `~/.hermes/config.yaml` had drifted
 (missing `zomato`, an extra hand-added `swiggy-dineout` from an earlier
@@ -86,6 +83,9 @@ experiment), re-running `scripts/setup-hermes-mcp.sh` added the missing
 `zomato` entry and left the others untouched (idempotent skip). Also
 clean-room tested against an empty `HERMES_CONFIG` path with no pre-existing
 file — produced the full three-server block, and a second run was a no-op.
+(Historical: the script carried three servers at the time. Since 12 Jul it adds
+`zomato` only, and the Swiggy entries — including the hand-added
+`swiggy-dineout` — were removed from `~/.hermes/config.yaml`.)
 
 ## Fresh chat from Telegram (verified 2026-07-12)
 
