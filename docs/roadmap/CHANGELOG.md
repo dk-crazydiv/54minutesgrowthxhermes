@@ -4,6 +4,22 @@ Newest first. One entry per meaningful event: what happened, why it matters, and
 the evidence lives. Session IDs let you find the full transcript later. Every manager
 session appends here before pushing.
 
+## July 12 — Swiggy chosen as build target; Zomato demoted to research-only
+
+Manager session (Jatin's Fable, session `39c8a1a3-a3f3-45a9-9daf-6c794b5079ce`).
+Commit `f7a3009`.
+
+- Closed the decision point at the end of `docs/idea.md`: Swiggy is the build target
+  (Instamart vertical, legal builders program, reorderMeta/coupons map onto all five
+  flows); Zomato stays research-only (lifetime history is demo-extension material, but
+  its README forbids third-party apps). Checked off Priyam's "is zomato needed" item.
+- Session stand-up: watcher running (bg), gateway healthy under launchd (PID 52787 —
+  the "survives reboots" backlog item looks already solved, needs a kill-test as proof).
+  Repo-root `.env` was missing; restored from `~/.hermes/.env`. Smoke still red:
+  `MINIMAX_API_KEY` empty in both copies — Jatin chose to skip minimax for now.
+- Fixed a drift: the Zomato comparison table said Swiggy history was "active orders
+  only"; it's the last 5 orders including delivered.
+
 ## July 12 — GrowthX handbook saved to the repo
 
 Worker session: Claude Code (Opus), pushed as priyam307. Not a manager session, so no
