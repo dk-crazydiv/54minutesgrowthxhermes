@@ -1,0 +1,5 @@
+{
+  "name": "zomato-companion-backend",
+  "private": true,
+  "dependencies": { "convex": "^1.42.1" }
+}

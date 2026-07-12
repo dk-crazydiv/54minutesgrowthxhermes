@@ -17,5 +17,9 @@ The product is the Swiggy Companion Agent (`docs/idea.md`). Everything here serv
 
 - **Submit the live URL.** Landing page is live at https://zomato-companion.pages.dev
   (Zomato-branded). Kartik submits it at growthx.club/hermes-buildathon/submit.
+- **ElevenLabs power-up (+25).** Voice must do real work in the product — e.g. the bot
+  sends a spoken order confirmation or ETA update. Needs a live demo for a mentor.
+- **Wispr Flow power-up (+25).** On Kartik: dictate 500+ words during the event and
+  screenshot the Wispr stats page. No code needed.
 - **Calendar timing + stock-watch** — demo as extensions if time allows, not build targets
   until the three flows above run live.
