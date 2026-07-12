@@ -95,6 +95,20 @@ preferences.md first, and rank by the human's own data:
    the authorize link and logs in themselves — you only exchange the redirect
    URL they paste back.)
 
+## Scheduled orders ("order tea at 4pm")
+
+Use Hermes cron. The confirm happens at SCHEDULING time, not fire time:
+
+1. Resolve the order now (item from their history, restaurant, rough total)
+   and ask one confirm: "Chai from Chai Point ~₹128, ordering at 3:45 so it
+   lands by 4. Confirm?" Mention the cancel caveat once here.
+2. On yes, create the cron job. For "arrive AT 4pm", schedule at 4pm minus the
+   restaurant's delivery ETA; for "order at 4pm", schedule at 4pm sharp.
+3. When it fires: build the cart fresh (prices change), place the order, and
+   message them the confirmation + payment QR. If the fresh total is >20%
+   above the quoted total, don't place — message them to re-confirm instead.
+4. One-off jobs must delete themselves after firing (or use a one-shot cron).
+
 ## Housekeeping
 
 - `/new` resets the session; suggest it if the conversation drags or context
