@@ -51,6 +51,18 @@ hermes chat
   see `docs/zomato/mcp-setup.md`).
 - After editing the config in a running session, use `/reload-mcp`.
 
+## Verified live (12 Jul, Jatin's machine)
+
+- `hermes mcp login zomato` is the clean way to do first-time auth (browser OAuth);
+  `hermes mcp test zomato` then shows ✓ Connected, 11 tools. Tokens live in Hermes's
+  own store — a Claude Code login for the same server does NOT carry over.
+- One-shot mode (`hermes -z ... -t zomato`) accepts the toolset name but does not
+  actually attach the MCP server ("not connected to this profile") — MCP tools attach
+  in real sessions (gateway/chat), not `-z`. Don't use `-z` as an MCP smoke test.
+- Gateway startup logs mention MCP not at all; servers connect lazily per session.
+  After config or auth changes, restart the gateway
+  (`launchctl kickstart -k gui/$UID/ai.hermes.gateway`) or `/reload-mcp` in a session.
+
 ## What's repo-carried vs. what each teammate does once
 
 Repo-carried (works after `git clone && bash setup.sh`, no manual step):
