@@ -335,6 +335,7 @@ class ShellSafetyTests(unittest.TestCase):
             scripts = {
                 "setup.sh": "#!/usr/bin/env bash\nexit 0\n",
                 "scripts/setup-hermes-mcp.sh": "#!/usr/bin/env bash\nexit 0\n",
+                "scripts/patch-hermes-branding.sh": "#!/usr/bin/env bash\nexit 0\n",
                 "scripts/smoke.sh": "#!/usr/bin/env bash\nexit 7\n",
                 "bootstrap/watch_git.sh": "#!/usr/bin/env bash\nexit 0\n",
                 "scripts/telegram.sh": f"#!/usr/bin/env bash\ntouch {marker!s}\nexit 0\n",

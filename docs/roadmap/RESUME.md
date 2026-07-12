@@ -70,7 +70,15 @@ manual version.
   live phone proof is still waiting on the user's Zomato login.
 - This remains single-user safe mode. Tokens and the live MCP client are default-profile
   scoped; do not open the bot to strangers until they are isolated per Telegram user.
-- Everyone works on main, no branches. The remote is
+- In flight (subagents): a runnable test suite in `tests/` that
+  drives the agent as a mock Telegram user (CLI sessions are separate from Kartik's
+  Telegram thread — tests never touch his context, and NEVER call checkout_cart);
+  a per-user memory store in `users/<id>/` (Kartik's full Zomato history as CSV so
+  history queries stop re-pulling 39 pages); a session-grouped debug dashboard +
+  refreshed mission-control.html.
+- Priyam's per-Telegram-user Zomato auth work is landing; the users/ folder
+  naming expects a telegram user id.
+- **Everyone works on the `3pmdemo` branch now** — commit and push there, not main. The remote is
   `github.com/dk-crazydiv/54minutesgrowthxhermes`. The watcher runs clean against it.
 - Every push updates `docs/roadmap/CHANGELOG.md`: what happened, the proof, and the
   session ID of the Fable that did it.

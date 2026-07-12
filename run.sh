@@ -14,6 +14,8 @@ hermes config set model.default gpt-5.4-mini >/dev/null
 echo "== 3/6 zomato MCP"
 bash scripts/setup-hermes-mcp.sh
 
+bash scripts/patch-hermes-branding.sh
+
 echo "== 4/6 smoke (all brains must PONG)"
 smoke_rc=0
 bash scripts/smoke.sh || smoke_rc=$?
