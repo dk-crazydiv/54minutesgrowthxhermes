@@ -7,9 +7,9 @@ cd "$(dirname "$0")"
 echo "== 1/6 base setup (vendors hermes, wires ~/.hermes)"
 bash setup.sh
 
-echo "== 2/6 default brain: codex (gpt-5.5) — fast, no GLM struggles"
+echo "== 2/6 default brain: codex (gpt-5.4-mini) — fast, no GLM struggles"
 hermes config set model.provider openai-codex >/dev/null
-hermes config set model.default gpt-5.5 >/dev/null
+hermes config set model.default gpt-5.4-mini >/dev/null
 
 echo "== 3/6 zomato MCP"
 bash scripts/setup-hermes-mcp.sh
